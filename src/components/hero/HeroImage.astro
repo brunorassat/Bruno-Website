@@ -70,55 +70,68 @@ const { slug } = Astro.params;
   <div
     class="absolute inset-0 z-10 grid place-items-center bg-dark bg-opacity-20"
   >
-    <div class="container-xl py-8">
-      <div class="max-w-3xl">
-        {
-          pubDate && (
-            <span class="text-overline">
-              <FormattedDate date={pubDate} />
-            </span>
-          )
-        }
-        <h1 class="title">
-          {title}
-        </h1>
-        {intro && <div class="subtitle balance py2"> {intro}</div>}
-
-        {
-          tag && (
-            <ItemFilter
-              filters={tag}
-              className="mt-4 justify-start"
-              links={true}
-              {base_url}
-            />
-          )
-        }
-
-        {
-          filters && (
-            <ItemFilter
-              filters={filters}
-              className="mt-4"
-              links={true}
-              active={filter}
-              type={filter_type}
-              {base_url}
-            />
-          )
-        }
-        {
-          hero_buttons && hero_buttons.length > 0 && (
-            <div class="flex flex-wrap gap-4 py-8">
-              {hero_buttons.map((btn) => (
-                <Button {...btn} />
-              ))}
-            </div>
-          )
-        }
-        <slot />
-      </div>
+   <div class="container-xl py-8">
+  <div class="flex flex-col items-center justify-center text-center gap-4 max-w-3xl mx-auto">
+    <div class="w-[220px] h-[220px]">
+      <video
+        autoplay
+        muted
+        loop
+        playsinline
+        class="rounded-full shadow-lg w-full h-full object-cover"
+      >
+        <source src="/videos/face_no_talk.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
     </div>
+
+    {
+      pubDate && (
+        <span class="text-overline">
+          <FormattedDate date={pubDate} />
+        </span>
+      )
+    }
+
+    <h1 class="title">{title}</h1>
+
+    {intro && <div class="subtitle balance">{intro}</div>}
+
+    {
+      tag && (
+        <ItemFilter
+          filters={tag}
+          className="mt-4 justify-center"
+          links={true}
+          {base_url}
+        />
+      )
+    }
+
+    {
+      filters && (
+        <ItemFilter
+          filters={filters}
+          className="mt-4"
+          links={true}
+          active={filter}
+          type={filter_type}
+          {base_url}
+        />
+      )
+    }
+
+    {
+      hero_buttons && hero_buttons.length > 0 && (
+        <div class="flex flex-wrap gap-4 py-6 justify-center">
+          {hero_buttons.map((btn) => (
+            <Button {...btn} />
+          ))}
+        </div>
+      )
+    }
+
+    <slot />
   </div>
 </div>
 
