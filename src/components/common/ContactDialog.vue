@@ -15,16 +15,12 @@
           </div>
 
           <!-- Right: Calendly embed -->
-          <div
-            class="hide-scrollbar dialog__content relative overflow-hidden p-8 md:p-14"
-          >
-            <div class="w-full h-full">
-              <div
-                class="calendly-inline-widget w-full h-full"
-                data-url="https://calendly.com/brunorassat/30min"
-                style="min-width:320px;height:100%;"
-              ></div>
-            </div>
+          <div class="dialog__content flex items-stretch justify-center p-0 w-full h-full">
+            <div
+              class="calendly-inline-widget w-full h-full"
+              data-url="https://calendly.com/brunorassat/30min"
+              style="min-width: 320px; height: 100%;"
+            ></div>
           </div>
         </div>
 
