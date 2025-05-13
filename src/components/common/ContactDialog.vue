@@ -10,12 +10,12 @@
           class="surface-base dialog__inner dialog-grid relative overflow-hidden rounded-2xl shadow-xl"
         >
           <!-- Left: image slot -->
-          <div class="overflow-hidden md:block">
+          <div class="overflow-hidden w-full h-full md:block">
             <slot name="image" />
           </div>
 
           <!-- Right: Calendly embed -->
-          <div class="dialog__content flex items-stretch justify-center p-0 w-full h-full">
+          <div class="dialog__content flex items-stretch justify-center p-0 w-full h-[85vh] md:h-[40rem]">
             <div
               class="calendly-inline-widget w-full h-full"
               data-url="https://calendly.com/brunorassat/30min"
@@ -98,8 +98,8 @@ onMounted(() => {
   }
 
   &__content {
+    height: 85vh;
     @screen md {
-      max-height: calc(100vh - 2rem);
       height: min(100vh - 2rem, 40rem);
       overflow-x: hidden;
       overflow-y: auto;
