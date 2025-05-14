@@ -3,21 +3,40 @@
   "compilerOptions": {
     "strictNullChecks": true,
     "verbatimModuleSyntax": true,
-
-    "baseUrl": ".",
+    "baseUrl": "C:/Users/BrunoRassat/OneDrive - Entobel/Documents/data_project/nebulix-bruno",
     "paths": {
-      "@components/*": ["src/components/*"],
-      "@pages/*": ["src/pages/*"],
-      "@layouts/*": ["src/layouts/*"],
-      "@util/*": ["src/util/*"],
-      "@cms/*": ["src/cms/*"],
-      "@icons/*": ["src/icons/*"],
-      "@src/*": ["src/*"],
-      "@assets/*": ["src/assets/*"],
-      "@locales/*": ["src/locales/*"]
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@pages/*": [
+        "src/pages/*"
+      ],
+      "@layouts/*": [
+        "src/layouts/*"
+      ],
+      "@util/*": [
+        "src/util/*"
+      ],
+      "@cms/*": [
+        "src/cms/*"
+      ],
+      "@icons/*": [
+        "src/icons/*"
+      ],
+      "@src/*": [
+        "src/*"
+      ],
+      "@assets/*": [
+        "src/assets/*"
+      ],
+      "@locales/*": [
+        "src/locales/*"
+      ]
     },
-
-    "jsx": "preserve",
-    "types": ["vue3-toastify/global"]
+    "jsx": "react-jsx",
+    "types": [
+      "vue3-toastify/global"
+    ],
+    "jsxImportSource": "react"
   }
 }

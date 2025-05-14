@@ -1,0 +1,25 @@
+.hedgehog-body {
+  fill: var(--hedgehog-color, #272828);
+  transition: fill 0.3s ease;
+}
+
+body.light .hedgehog-body {
+  --hedgehog-color: #272828;
+}
+
+body.dark .hedgehog-body {
+  --hedgehog-color: #f0f0f0;
+}
+
+.eye {
+  opacity: 1;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.eye.blinking {
+  opacity: 0;
+}
+
+.hedgehog ellipse {
+  transition: cx 0.08s ease-out, cy 0.08s ease-out;
+}

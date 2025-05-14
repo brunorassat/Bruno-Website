@@ -1,11 +1,11 @@
 ---
 import NavMobile from "@components/navigation/NavMobile.vue";
 import { Icon } from "astro-icon/components";
-
 import PageFind from "@components/common/PageFind.astro";
 import CartButton from "@components/shop/CartButton.vue";
 import ColorSwitch from "@components/common/ColorSwitch.vue";
 import { t } from "@util/translate";
+import Hedgehog from "@components/Hedgehog.tsx";
 
 const { menu, title, social } = Astro.props;
 const currentPath = Astro.url.pathname.split("/")[1];
@@ -17,12 +17,22 @@ const isActive = (href) => {
 ---
 
 <header class="surface-menu nav sticky top-0 z-50" transition:name="nav">
-  <nav class="container-xl flex flex-nowrap items-stretch gap-6">
+  <nav class="container-xl flex flex-nowrap items-center gap-6 relative">
+    <!-- Absolute-positioned Hedgehog logo -->
+    <div class="absolute left-0 top-1/2 -translate-y-1/2 scale-[1.4] w-[48px] h-[48px] z-10">
+      <Hedgehog client:load />
+    </div>
+
+    <!-- Spacer to prevent overlap -->
+    <div class="w-[48px] md:w-[52px]"></div>
+
+    <!-- Discover Bruno link -->
     <a
       href="/"
       aria-label={title}
       class="grid place-items-center py-3 text-primary"
-      >Discover Bruno
+    >
+      Discover Bruno
     </a>
     {
       menu && (
