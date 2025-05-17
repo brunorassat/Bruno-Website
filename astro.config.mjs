@@ -9,7 +9,6 @@ import rehypeExternalLinks from "rehype-external-links";
 import fauxRemarkEmbedder from "@remark-embedder/core";
 import fauxOembedTransformer from "@remark-embedder/transformer-oembed";
 import vue from "@astrojs/vue";
-import react from "@astrojs/react";
 import path from "path"; // <-- Required to resolve file system paths
 
 const remarkEmbedder = fauxRemarkEmbedder.default;
@@ -33,7 +32,6 @@ export default defineConfig({
       appEntrypoint: "/src/pages/_app"
     }),
     astroImageTools,
-    react()
   ],
   markdown: {
     extendDefaultPlugins: true,
