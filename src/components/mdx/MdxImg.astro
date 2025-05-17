@@ -47,4 +47,13 @@ const isSvg = !isPixelBasedImage(ext);
     </Intersecting>
   )
 }
-{isSvg && <img {...props} alt={imgAlt} />}
+{isSvg && (
+  <Picture
+    {...props}
+    alt={imgAlt}
+    width={768}
+    breakpoints={[
+      360, 390, 412, 601, 768, 820, 962, 1280, 1440, 1536, 1920,
+    ]}
+  />
+)}

@@ -72,23 +72,18 @@ const contact = await getEntry("config", "contact");
         contact?.data?.form?.intro && (
           <div
             set:html={marked.parse(contact.data.form.intro)}
-            slot="content"
           />
         )
       }
       <Picture
-        slot="image"
         src={contact.data.form.thumbnail}
-        alt={`contact`}
-        sizes="50vw"
-        aspect={4 / 5}
+        alt="contact"
+        sizes="(max-width: 768px) 100vw, 40vw"
+        ar={4 / 5}
         format={["webp"]}
         fit="cover"
-        layout="fill"
-        placeholder="blurred"
-        position="attention"
+        placeholder="blur"
         loading="lazy"
-        sizes="(max-width: 768px) 100vw, 40vw"
         breakpoints={[420, 725, 960]}
         artDirectives={[
           {
