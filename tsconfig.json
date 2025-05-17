@@ -3,7 +3,7 @@
   "compilerOptions": {
     "strictNullChecks": true,
     "verbatimModuleSyntax": true,
-    "baseUrl": "C:/Users/BrunoRassat/OneDrive - Entobel/Documents/data_project/nebulix-bruno",
+    "baseUrl": ".",
     "paths": {
       "@components/*": [
         "src/components/*"
