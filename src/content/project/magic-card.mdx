@@ -1,0 +1,158 @@
+---
+tag:
+  - llm
+  - generative-ai
+title: Behind the Scenes of an AI-Powered News Site
+description: Trace, monitor and optimize an LLM chain in production
+intro: A tale of LLM pipeline evaluation and tracing
+features:
+  - name: MLTimes
+    value: https://news.lambda.ai
+hero_buttons:
+  - component: Link
+    label: Read article
+    href: "#more"
+    class: surface-primary
+    icon_only: false
+    icon: /src/icons/down-line.svg
+    color: surface-primary
+style:
+  template: full
+  card_template: grid
+  hero_template: image
+  hero_image_opacity: ""
+  container: md
+  block_class: my-0
+thumbnail: /src/assets/about-us.jpeg
+date: 2023-09-03T10:31:47.439Z
+---
+
+## What I learn from building an AI-powered News Site
+
+*ML Times is an AI-generated news site dedicated to summarizing and curating relevant updates for machine learning professionals.*
+
+![ML Times homepage](/src/assets/about-us.jpeg)
+
+
+Everyday, ML Times backend scans hundreds of sources, selects the most relevant stories, and produces concise summaries. Note that some of these steps involve programming functions (e.g., extracting article text from a web page), while others involve LLM calls (e.g., summarizing an article).
+We refer to this sequence of processing steps as "chain" or "workflow". 
+
+A failure at any point can lead to issues degrading the quality of content on the website:
+  * Article extraction errors: Parsing issues may result in missing or incomplete article content.
+  * Summarization flaws: Summaries might omit important details or misrepresent the original intent.
+  * Article selection inaccuracies: Marketing material disguised as machine learning insights may slip through and appear on the front page.
+
+***Ultimately, the quality of content featured on the news website hinges on the reliability of the entire workflow and each step must perform correctly.***
+
+While the pipeline is relatively straightforward, the sheer volume and diversity of articles present a significant challenge: building a workflow robust enough to handle all inputs reliably.
+
+This is where **worklow evaluation** and **tracing** come in.
+
+**Evaluation** answers questions such as:
+  + Which model should I use for article summarization?
+  + Should I use *prompt A* or *prompt B* to maximize the accuracy of the relevance filter step?
+
+**LLM tracing** on the other hand provides visibility into how each article moves through the system — from raw HTML to published summary. By recording inputs, outputs, and intermediate steps, tracing helps debug problems, understand system behavior, and iteratively improve performance.**
+
+In this article, we’ll explore evaluation and tracing for production-grade LLM applications. We’ll cover our integration of tracing into the ML Times’ pipeline and the key lessons we learned for optimizing LLM performance and reliability.
+
+
+
+### Pipeline overview
+
+We used **LangSmith** for pipeline tracing, chain versioning, and experiments — though in hindsight, we’d consider open-source options like **LangFuse** to avoid vendor lock-in.
+
+
+
+**Article Ingestion**  
+
+We ingest a wide set of sources using `BeautifuSoup`. 
+This is the first step of the LLM workflow tracing as any issue at this step will cause issue down the pipeline.  
+Not all articles are relevant to the ML community, so the next step is filtering.
+
+**Relevance Classification**
+
+An LLM is prompted to identify whether a given article is actually relevant to ML practitioners.
+
+* This step is relatively straightforward to evaluate because **we can build a labelled testing dataset** to measure expected accuracy, true positive rate, and so on. Required lots of manual work to label relevance accurately but also sparked product discussions around what *should* be covered.
+* **I achieved better accuracy by prompting for a *1–5 relevance score*, with carefully designed grading criteria over prompting for a binary classification decision.** Specifically, models would be much better at correctly classifying borderline articles and the ability to rank articles based on relevance turned out useful as well. 
+* Prompting the model to **include a justification for its filtering decision provides insights into how to update the prompt to fix errors in classifications.**
+* The relevance filter is **more accurate when processing the full article instead of the summarized article** but also more expensive (ie more input token per run).
+* **Stronger models beat weaker models at *true negative rate* but not *true positive rate***. In other words, weaker models are able to catch if an article is *about machine learning* but not so much if they are *actually insightful for a machine learning practionner*. Effectively, we had to use GPT-4 to successfully filter out marketing noise and only keep impactful industry news.
+
+
+**Summary Generation**
+
+For relevant articles, we prompt LLMs to produce short summaries (3 bullet points) that highlight the key insights.
+
+* **This step is not straightforward to evaluate as we cannot easily measure against a reference dataset.**
+* I used a **LLM-as-evaluator workflow** that compares the summaries of two competing summarization worklows and select on the best one. This requires to trust the evaluator model decisions and a careful experiment implementation to avoid biased evaluations. 
+* **Stronger models significantly outperformed weaker model on this task** — particularly on capturing signal over fluff and writing fluid, readable summaries.
+
+
+
+### Insights & Outcomes
+
+
+#### Faster Iteration, Better Quality
+- The evaluation system helped us catch issues that only surfaced in edge cases or long-tail articles.
+- It gave us confidence to switch to GPT-4 for summarization, knowing the gain justified the cost.
+- We avoided regressions by being able to **trace exactly where failures occurred** when experimenting.
+
+#### Surprising Wins from Open Source
+- We found that open-source models (e.g., LLAMA 3.1) performed well at **filtering non-relevant** articles.
+- That enabled a tiered system: use the cheap model first, and fallback to GPT for borderline cases—cutting overall run cost.
+
+#### Prompt Sensitivity
+- Classification prompts tuned for GPT-3.5 sometimes performed worse when run on GPT-4—prompt compatibility is not always transferable.
+- Summary performance improved more smoothly across models, but classification needed **model-specific tuning**.
+
+#### True Negative vs True Positive Tradeoffs
+- Weaker models had high **true negative rates** but missed nuanced relevant stories.
+- Stronger models (like GPT-4) were better at distinguishing between genuine insight and marketing fluff.
+
+
+### Challenges & Decisions
+
+
+#### Experiment Budgeting
+- Full sweeps across models × prompts × chains can get expensive
+- As a rule of thumb I start with identifying which model to use for each step and then run prompt engineering experiment for that specific task using that specific model; it makes sense not to frontload prompt engineering because different model perform best with different prompt.
+- Summarization is critical and has low volume whereas classifation has large volume and can tolerate some false negatives; therefore we can easily allocate the best model available to summarization but we may want to experiment with cheaper models for classification if needed.
+
+
+#### Balancing Speed, Cost, and Quality
+- We ran open-source models as first-pass filters
+- Ran expensive evals only on shortlists or benchmarks
+
+### Looking Ahead
+
+#### In Production
+The evaluation setup is now part of our **daily workflow**:
+- Summaries are continuously generated and filtered using the latest models
+- Periodic evaluations ensure regressions are caught before going live
+- Final summaries include traceable justification metadata
+
+#### What We’d Do Differently
+- Explore open-source tools like **LangFuse** instead of LangSmith
+- Use **multi-agent setups** to synthesize decisions for ambiguous articles (e.g., relevance via a vote or summary review)
+
+#### Beyond ML News?
+- While ML Times is focused on one domain, this pipeline could easily be extended to:
+  - Developer tooling changelogs
+  - Financial news
+  - Scientific research updates
+
+
+### Conclusion
+
+Building ML Times was not just about generating text—it was about building trust. The combination of:
+- a thoughtful LLM pipeline,
+- a strong evaluation backbone,
+- and continuous improvement through model/prompt testing
+
+...allowed us to deliver readable, relevant, and reliable machine learning news—powered entirely by LLMs.
+
+For anyone building LLM products at scale: don’t just build the output. Build the evaluators too.
+
+---
