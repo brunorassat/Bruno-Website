@@ -2,12 +2,9 @@
 tag:
   - llm
   - generative-ai
-title: Behind the Scenes of an AI-Powered News Site
+title: The Magic of Data From Fetching MTG Cards to Visual Insights
 description: Trace, monitor and optimize an LLM chain in production
 intro: A tale of LLM pipeline evaluation and tracing
-features:
-  - name: MLTimes
-    value: https://news.lambda.ai
 hero_buttons:
   - component: Link
     label: Read article
@@ -26,132 +23,315 @@ thumbnail: /src/assets/about-us.jpeg
 date: 2023-09-03T10:31:47.439Z
 ---
 
-## What I learn from building an AI-powered News Site
+# The Magic of Data From Fetching MTG Cards to Visual Insights
 
-*ML Times is an AI-generated news site dedicated to summarizing and curating relevant updates for machine learning professionals.*
+<div style={{ display: "flex", justifyContent: "center", margin: "2rem 0" }}>
+  <iframe
+    width="600"
+    height="450"
+    src="https://lookerstudio.google.com/embed/reporting/f4c9c75c-3a12-4a8d-964e-ed63334e8326/page/p_7cevaedcod"
+    frameBorder="0"
+    style={{ border: 0, borderRadius: "12px", boxShadow: "0 2px 16px rgba(0,0,0,0.08)" }}
+    allowFullScreen
+    sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+    title="ML Times Dashboard"
+  ></iframe>
+</div>
 
-![ML Times homepage](/src/assets/about-us.jpeg)
+*As both a data nerd and a lifelong Magic: The Gathering (MTG) fan, I embarked on a quest to turn a trove of raw MTG card data into actionable insights. This is the story of how I built a data pipeline—using **dbt (Data Build Tool)**, some SQL magic, and a bit of cloud wizardry—to transform JSON data from the Scryfall API into a structured data warehouse. Along the way, I wrestled with nested JSON hydras, cast transformation spells on mana costs and rarities, and ultimately unlocked a treasure chest of analytics possibilities.*
 
+## Motivation: When Data Meets Magic
 
-Everyday, ML Times backend scans hundreds of sources, selects the most relevant stories, and produces concise summaries. Note that some of these steps involve programming functions (e.g., extracting article text from a web page), while others involve LLM calls (e.g., summarizing an article).
-We refer to this sequence of processing steps as "chain" or "workflow". 
+I've always been passionate about Magic: The Gathering, a trading card game rich with **decades of cards and data**. Each card has a tapestry of attributes: mana costs, colors, card types, rarities, power/toughness, artist, release set, and even market prices. As a techie, I couldn't help but wonder—*what insights lie hidden in all that data*?
 
-A failure at any point can lead to issues degrading the quality of content on the website:
-  * Article extraction errors: Parsing issues may result in missing or incomplete article content.
-  * Summarization flaws: Summaries might omit important details or misrepresent the original intent.
-  * Article selection inaccuracies: Marketing material disguised as machine learning insights may slip through and appear on the front page.
+Some questions that intrigued me as a fan and data enthusiast included:
 
-***Ultimately, the quality of content featured on the news website hinges on the reliability of the entire workflow and each step must perform correctly.***
+- **Deck Building Insights:** Which cards provide the best value for their mana cost? Are certain colors dominating high-mana strategies?
+- **Rarity Distribution:** How do different sets compare in terms of the proportion of common vs. rare cards?
+- **Historical Trends:** Has the average power of creatures increased over the years? Do newer sets tend to have more complex multi-color cards?
+- **Price Analysis:** What are the most expensive cards and how do prices correlate with card attributes like rarity or color?
 
-While the pipeline is relatively straightforward, the sheer volume and diversity of articles present a significant challenge: building a workflow robust enough to handle all inputs reliably.
+To answer these questions (and fuel my own deck-building decisions!), I needed a **comprehensive dataset** of MTG cards that I could query and analyze. Luckily, the community-driven **Scryfall API** offers a complete catalog of Magic cards. Unluckily, that data comes as **nested JSON**—great for interchange, but not immediately ready for SQL analysis. Thus began my journey: from raw JSON to a polished data warehouse, using dbt to bridge the gap.
 
-This is where **worklow evaluation** and **tracing** come in.
+## The Challenge: Raw JSON from the Scryfall API
 
-**Evaluation** answers questions such as:
-  + Which model should I use for article summarization?
-  + Should I use *prompt A* or *prompt B* to maximize the accuracy of the relevance filter step?
+Scryfall provides MTG card data in JSON format, either via their API endpoints or bulk data dumps. This JSON is rich but **deeply nested and complex**. To give you a sense, a single card object from Scryfall might look like this (simplified for illustration):
 
-**LLM tracing** on the other hand provides visibility into how each article moves through the system — from raw HTML to published summary. By recording inputs, outputs, and intermediate steps, tracing helps debug problems, understand system behavior, and iteratively improve performance.**
+```json
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "name": "Black Lotus",
+  "mana_cost": "0",
+  "colors": [],
+  "type_line": "Artifact",
+  "oracle_text": "Sacrifice Black Lotus: Add three mana of any one color.",
+  "power": null,
+  "toughness": null,
+  "rarity": "rare",
+  "set_name": "Limited Edition Alpha",
+  "collector_number": "233",
+  "prices": {
+    "usd": "150000.00",
+    "eur": "135000.00"
+  },
+  "released_at": "1993-08-05"
+  /* ... dozens more fields ... */
+}
+```
 
-In this article, we’ll explore evaluation and tracing for production-grade LLM applications. We’ll cover our integration of tracing into the ML Times’ pipeline and the key lessons we learned for optimizing LLM performance and reliability.
+At first glance, it's a treasure trove of information: card names, mana costs, colors, types, even prices in different currencies. But as raw JSON, this data is unwieldy:
 
+**Nested Structures:** Some fields are nested objects or arrays. For example, "colors" is an array of color symbols (e.g., ["R", "G"] for a red-green card), and "prices" is an object containing subfields like usd, eur, etc. Running SQL queries on such nested data (especially once loaded into a relational database) is not straightforward without flattening it out.
 
+**Inconvenient Formats:** Fields like "mana_cost" use curly brace notation (e.g., "2GG" for a card costing 2 generic mana and 2 Green mana, where "G" is the string for Green mana). These are great for human reading or display, but if I want to sum up mana costs or compare them numerically, I need to parse those strings into numbers, treating symbols like "G" as string values, not variables.
 
-### Pipeline overview
+**Inconsistencies and Missing Data:** Not all cards have the same attributes. Creatures have power/toughness values, but spells do not. Some cards have multiple types (e.g., "Artifact Creature — Golem") and some have none. Some older cards might lack price data. The dataset required cleaning and standardization to handle these variations.
 
-We used **LangSmith** for pipeline tracing, chain versioning, and experiments — though in hindsight, we’d consider open-source options like **LangFuse** to avoid vendor lock-in.
+**Scale:** The bulk data contains tens of thousands of cards. Efficiency matters. A naive approach to handling the JSON could be slow or expensive in a data warehouse environment.
 
+In short, the raw Scryfall JSON is like a multiverse of data—full of potential, but you need the right spells (or tools) to harness it. My mission was clear: transform this JSON into structured tables that any analyst (or curious Planeswalker 🧙‍♂️) could easily query.
 
+## Enter dbt: Taming the Data Hydra
 
-**Article Ingestion**  
+To tame the JSON and unlock its secrets, I turned to **dbt (Data Build Tool)**. Dbt is an open-source framework that allows data engineers to build modular SQL transformations with software engineering best practices (version control, testing, documentation). It was the perfect companion for this quest:
 
-We ingest a wide set of sources using `BeautifuSoup`. 
-This is the first step of the LLM workflow tracing as any issue at this step will cause issue down the pipeline.  
-Not all articles are relevant to the ML community, so the next step is filtering.
+**Modularity:** I could break down the complex transformation into smaller, logical steps (models). Instead of one giant SQL query doing everything, I would have multiple models: each focused on a specific task (e.g., flattening JSON, deriving mana costs, building dimensions).
 
-**Relevance Classification**
+**Jinja & Macros:** dbt allows using Jinja templating in SQL. This meant I could use loops, conditional logic, and even custom macros to handle repetitive tasks or database-specific functions. For example, I wrote a small macro to ensure consistent date formatting across databases, and used built-in dbt utilities for things like generating a date spine (more on that later).
 
-An LLM is prompted to identify whether a given article is actually relevant to ML practitioners.
+**Source Control & CI:** My entire transformation pipeline lives in a git repository. This enabled me to collaborate and to set up Continuous Integration (CI) checks. Every change to the code could auto-run tests, ensuring I didn't break any transformations (nothing worse than a miscast spell going unnoticed!).
 
-* This step is relatively straightforward to evaluate because **we can build a labelled testing dataset** to measure expected accuracy, true positive rate, and so on. Required lots of manual work to label relevance accurately but also sparked product discussions around what *should* be covered.
-* **I achieved better accuracy by prompting for a *1–5 relevance score*, with carefully designed grading criteria over prompting for a binary classification decision.** Specifically, models would be much better at correctly classifying borderline articles and the ability to rank articles based on relevance turned out useful as well. 
-* Prompting the model to **include a justification for its filtering decision provides insights into how to update the prompt to fix errors in classifications.**
-* The relevance filter is **more accurate when processing the full article instead of the summarized article** but also more expensive (ie more input token per run).
-* **Stronger models beat weaker models at *true negative rate* but not *true positive rate***. In other words, weaker models are able to catch if an article is *about machine learning* but not so much if they are *actually insightful for a machine learning practionner*. Effectively, we had to use GPT-4 to successfully filter out marketing noise and only keep impactful industry news.
+**Clarity with Sources:** In dbt, you can define sources which represent raw data tables. I defined the Scryfall JSON dataset as a source named `scryfall.mtg_cards`. This made it clear which models depended on external raw data, and I could add tests to validate that source (e.g., check that we actually have data loaded).
 
+With dbt in hand, I sketched out a plan for the pipeline. First, I'd ingest the raw data into a table. Next, use dbt to normalize that data—extracting the nested JSON fields into a relational form. Then, perform further transformations to enrich the data (compute new fields like total mana cost, classify types, etc.). Finally, organize the polished data into a dimensional model (tables structured for easy querying and analysis).
 
-**Summary Generation**
+## Data Ingestion: From Scryfall to Warehouse
 
-For relevant articles, we prompt LLMs to produce short summaries (3 bullet points) that highlight the key insights.
+Every journey starts at the source. In this case, I needed to get the Scryfall data into a database where dbt could work its magic. I wrote a Python script to handle this:
 
-* **This step is not straightforward to evaluate as we cannot easily measure against a reference dataset.**
-* I used a **LLM-as-evaluator workflow** that compares the summaries of two competing summarization worklows and select on the best one. This requires to trust the evaluator model decisions and a careful experiment implementation to avoid biased evaluations. 
-* **Stronger models significantly outperformed weaker model on this task** — particularly on capturing signal over fluff and writing fluid, readable summaries.
+**Fetching Data:** Scryfall offers a bulk API endpoint for "Oracle Cards" – essentially a dump of all card data. The script downloads this JSON (which is ~480 MB, containing all cards).
 
+**Loading to Cloud Warehouse:** I used Google BigQuery as my data warehouse. The script, running on a schedule (using a GitHub Actions workflow), pulls the latest data and loads it into BigQuery. Each run ensures the warehouse is up-to-date with new cards or updated prices. (One could also store snapshots over time for historical analysis, but in my initial version I focused on the current state of card data.)
 
+**Raw Table Structure:** For simplicity, I stored the raw JSON in a single column. Essentially, I had a table `scryfall.mtg_cards` with a structure like: `id` (string), `json_data` (JSON). The entire array of cards was stored in one row's JSON, which I would then explode in dbt. (Alternatively, I could have loaded each card as a separate row, but handling a giant JSON array as a single object was convenient for this approach.)
 
-### Insights & Outcomes
+With the raw data in place, I was ready to let dbt shine by transforming this unwieldy JSON into nice, neat tables.
 
+## Normalization: Unnesting the JSON
 
-#### Faster Iteration, Better Quality
-- The evaluation system helped us catch issues that only surfaced in edge cases or long-tail articles.
-- It gave us confidence to switch to GPT-4 for summarization, knowing the gain justified the cost.
-- We avoided regressions by being able to **trace exactly where failures occurred** when experimenting.
+The first dbt model in my pipeline was all about normalization – flattening that nested JSON structure into a table of atomic values. I created a model called `scryfall_norm__cards` (in my "2_normalization" folder) with SQL roughly like this:
 
-#### Surprising Wins from Open Source
-- We found that open-source models (e.g., LLAMA 3.1) performed well at **filtering non-relevant** articles.
-- That enabled a tiered system: use the cheap model first, and fallback to GPT for borderline cases—cutting overall run cost.
+```sql
+-- Pseudocode: Flatten the Scryfall JSON into a structured table
+with source as (
+    select 
+        json_data 
+    from {{ source('scryfall', 'mtg_cards') }}
+),
+cards as (
+    -- Unnest the JSON array into individual card objects
+    select * 
+    from source, 
+         unnest(JSON_EXTRACT_ARRAY(json_data)) as card_obj
+)
+select
+    JSON_VALUE(card_obj, '$.id')            as card_id,
+    JSON_VALUE(card_obj, '$.name')          as name,
+    JSON_VALUE(card_obj, '$.type_line')     as type_line,
+    JSON_VALUE(card_obj, '$.mana_cost')     as mana_cost_raw,
+    JSON_EXTRACT_ARRAY(card_obj, '$.colors') as color_array,
+    JSON_VALUE(card_obj, '$.rarity')        as rarity,
+    JSON_VALUE(card_obj, '$.set_name')      as set_name,
+    JSON_VALUE(card_obj, '$.collector_number') as collector_number,
+    JSON_VALUE(card_obj, '$.artist')        as artist,
+    JSON_VALUE(card_obj, '$.oracle_text')   as oracle_text,
+    JSON_VALUE(JSON_EXTRACT(card_obj, '$.prices'), '$.usd') as price_usd,
+    JSON_VALUE(card_obj, '$.released_at')   as released_at
+from cards;
+```
 
-#### Prompt Sensitivity
-- Classification prompts tuned for GPT-3.5 sometimes performed worse when run on GPT-4—prompt compatibility is not always transferable.
-- Summary performance improved more smoothly across models, but classification needed **model-specific tuning**.
+A few things to note in this snippet:
 
-#### True Negative vs True Positive Tradeoffs
-- Weaker models had high **true negative rates** but missed nuanced relevant stories.
-- Stronger models (like GPT-4) were better at distinguishing between genuine insight and marketing fluff.
+- I used JSON extraction functions provided by the warehouse (BigQuery in my case) to pluck out fields. For example, `JSON_VALUE(card_obj, '$.name')` gives me the name of the card, and `JSON_EXTRACT_ARRAY(card_obj, '$.colors')` gives me the array of colors.
+- The `unnest(JSON_EXTRACT_ARRAY(json_data))` is the key step that takes the array of card JSON objects and turns it into a table of individual `card_obj` rows. After this, each row corresponds to one card.
+- At this stage, everything is still text (even numeric fields are strings) because JSON stores them as text. That's okay—we'll convert data types in the next steps.
 
+After this normalization step, I had a table `scryfall_norm__cards` where each card was a row with basic columns like `card_id`, `name`, `mana_cost_raw` (still with curly braces), `color_array` (still as an array type), `rarity`, etc. This was much easier to work with than the raw JSON blob. However, it was still a staging area – not quite the final form. Next, I needed to enrich and transform the data further: calculate numeric values, categorize text fields, and prepare it for the dimensional model.
 
-### Challenges & Decisions
+## Key Transformations: Mana, Rarity, and Card Type
 
+Here's where things got really fun. With the cards in a relational form, I used additional dbt models (in a "3_preprocessing" layer) to derive new fields and clean up the data. Some of the key transformations included:
 
-#### Experiment Budgeting
-- Full sweeps across models × prompts × chains can get expensive
-- As a rule of thumb I start with identifying which model to use for each step and then run prompt engineering experiment for that specific task using that specific model; it makes sense not to frontload prompt engineering because different model perform best with different prompt.
-- Summarization is critical and has low volume whereas classifation has large volume and can tolerate some false negatives; therefore we can easily allocate the best model available to summarization but we may want to experiment with cheaper models for classification if needed.
+### 1. Mana Cost Calculation
 
+In the raw data, a card's mana cost looks like "2GG" for a card that costs 2 generic mana and 2 Green mana. Another example: a card with "XBB" (where X is a variable cost and B is Black mana). These are not immediately useful for numeric analysis (you can't easily sum "2GG" as a number).
 
-#### Balancing Speed, Cost, and Quality
-- We ran open-source models as first-pass filters
-- Ran expensive evals only on shortlists or benchmarks
+I wanted to calculate a total mana cost for each card, treating each colored symbol as 1 and numeric symbols as their value (and treating X or other special symbols as 0 or just ignoring them for this total).
 
-### Looking Ahead
+Using SQL, I parsed the mana cost string and summed it up. I leveraged dbt's ability to handle arrays and some regex to do this. First, I removed the curly braces and split the string into an array of symbols. For example, "2GG" became ["2", "G", "G"]. Then I wrote a query to sum up the symbols:
 
-#### In Production
-The evaluation setup is now part of our **daily workflow**:
-- Summaries are continuously generated and filtered using the latest models
-- Periodic evaluations ensure regressions are caught before going live
-- Final summaries include traceable justification metadata
+```sql
+-- Pseudocode: Calculate total mana cost from mana symbols
+select 
+  card_id,
+sum(case 
+        when regexp_contains(mana_symbol, r'[WUBRGC]') then 1       -- any colored mana symbol counts as 1
+        when regexp_contains(mana_symbol, r'\d')       then cast(mana_symbol as int)  -- numeric mana like "2" becomes 2
+        else 0 
+      end
+  ) as total_mana_cost
+from scryfall_norm__cards,
+unnest(split(regexp_replace(mana_cost_raw, r'\{|\}', ''), '')) as mana_symbol  -- remove braces and split into symbols
+group by card_id;
+```
 
-#### What We’d Do Differently
-- Explore open-source tools like **LangFuse** instead of LangSmith
-- Use **multi-agent setups** to synthesize decisions for ambiguous articles (e.g., relevance via a vote or summary review)
+This query (incorporated in a dbt model) gives me a `total_mana_cost` for each card. For example, the "2GG" cost would yield 4 (2 generic + 1 + 1 for the two green symbols). A card with no cost (like many lands) would yield 0. This numeric field is super handy for analysis—now I can easily filter or average mana costs in SQL queries or visualizations.
 
-#### Beyond ML News?
-- While ML Times is focused on one domain, this pipeline could easily be extended to:
-  - Developer tooling changelogs
-  - Financial news
-  - Scientific research updates
+### 2. Rarity Ranking
 
+Magic cards come in different rarities: typically common, uncommon, rare, and mythic (with mythic being the most rare). In the JSON, rarity is a text field. I wanted a quick way to sort or compare rarities, so I introduced a numeric rarity rank. This was straightforward with a CASE statement:
 
-### Conclusion
+```sql
+case 
+    when rarity = 'common' then 1
+    when rarity = 'uncommon' then 2
+    when rarity = 'rare' then 3
+    when rarity = 'mythic' then 4
+    else 0 
+end as rarity_rank
+```
 
-Building ML Times was not just about generating text—it was about building trust. The combination of:
-- a thoughtful LLM pipeline,
-- a strong evaluation backbone,
-- and continuous improvement through model/prompt testing
+Now, `rarity_rank` gives an intuitive ordering: higher means rarer. If I want to, say, filter for cards that are rare or above, I can just do `WHERE rarity_rank >= 3`. Or sort by this to see cards ordered from common to mythic. It's a simple addition, but it makes certain queries easier (and no need to remember the textual order).
 
-...allowed us to deliver readable, relevant, and reliable machine learning news—powered entirely by LLMs.
+### 3. Type Classification
 
-For anyone building LLM products at scale: don’t just build the output. Build the evaluators too.
+Each Magic card's type is described in a free-text line (the `type_line` field). For example: "Creature — Elf Druid", "Instant", "Legendary Artifact Creature — Dragon", etc. These are flavorful and detailed, but for analysis I often want broader categories.
 
----
+I decided to classify each card into a primary type category: e.g., creature, sorcery, instant, artifact, enchantment, land, or other. I implemented this by checking keywords in the type line, using a CASE statement with `LOWER(type_line) contains` logic:
+
+```sql
+case 
+    when lower(type_line) like '%creature%'    then 'Creature'
+    when lower(type_line) like '%instant%'     then 'Instant'
+    when lower(type_line) like '%sorcery%'     then 'Sorcery'
+    when lower(type_line) like '%enchantment%' then 'Enchantment'
+    when lower(type_line) like '%artifact%'    then 'Artifact'
+    when lower(type_line) like '%land%'        then 'Land'
+    else 'Other'
+end as card_type_category
+```
+
+This way, a card like "Goblin Chieftain" with `type_line` "Creature — Goblin Warrior" gets classified as Creature. A "Lightning Bolt" (`type_line` "Instant") becomes Instant. A "Shatterstorm" (`type_line` "Sorcery") becomes Sorcery. And a "Nicol Bolas, Dragon-God" (`type_line` "Legendary Planeswalker — Bolas") would fall into Other (since I didn't explicitly carve out Planeswalkers in the first iteration).
+
+This simplification enabled me to, for example, quickly count how many creatures vs instants vs sorceries are in a given set or analyze trends like "are we getting more creatures over time compared to spells?".
+
+### 4. Other Cleanups and Derivations
+
+I also performed other transformations to enrich the data:
+
+**Numeric Conversions:** Fields like power and toughness (which are strings in JSON, especially for cases like "*/" or star values) were converted to integers where applicable. For instance, a power of "5" becomes integer 5. If a creature has "*/*" (scaling power, like "/*"), I set those to null or left as is because they aren't numeric.
+
+**Release Date Key:** I took the `released_at` date (e.g., "1993-08-05") and created a formatted date key (like 19930805) as well as kept the actual date. This can help when joining to a date dimension table or grouping by year, etc.
+
+**Color Breakdown:** One interesting challenge was how to handle the array of colors. Each card can be associated with multiple colors (or none, which means it's colorless). I wanted to analyze color distribution (like how many cards of each color exist, or what color combinations are common).
+
+To facilitate this, I created a separate model to explode the color array. Essentially, I took each card's `color_array` and unnested it so that if a card is, say, both Red and Green, it would produce two records: one for Red, one for Green. For colorless cards (where the array is empty), I treated them as having a color "C" for Colorless. The result was a table of card_id to color mappings.
+
+By the end of these transformations, I had a refined, enriched dataset of cards where each row contained not just the raw attributes from Scryfall, but also my new computed fields (total mana cost, rarity rank, type category, etc.). Now it was time to shape this into the final form: a set of tables designed for easy querying.
+
+## Building the Data Warehouse: Dimensions and Facts
+
+To make the data truly analytics-friendly, I organized it into a dimensional model (a star schema). This consisted of a few key tables in the final datawarehouse layer of my dbt project:
+
+**Dimension – Cards (`dim_cards`):** This is the main table containing one row per unique card. It includes all the core attributes of a card (name, type, etc.) along with the enriched fields we computed (total mana cost, rarity rank, etc.). I used the card's unique ID (from Scryfall) as the primary key for this dimension. I also included a foreign key to a date dimension (more on that soon) via the card's release date. Essentially, `dim_cards` is the go-to table if you want details about cards.
+
+**Dimension – Colors (`dim_colors`):** I created a small static table listing each of Magic's five colors (White, Blue, Black, Red, Green) plus Colorless. Each color has a descriptive name, a symbol (I even stored a URL to an icon for that mana symbol), and a brief description (for fun, e.g., "White – represents the plains and light"). This table is useful for lookups or to get full names of colors instead of single letters.
+
+**Fact – Card-Color Bridge (`fact_cards_colors`):** This is a fact table (or more accurately a bridge table) that links cards to colors. It was built from the exploded color data I described earlier. Each row has a card ID and a color (e.g., "Goblin Chieftain" → "R" for Red). If a card has multiple colors, it will have multiple rows here. If it's colorless, it will have one row with color "C". This table allows analysis of color distribution; for example, you can join it with `dim_cards` to filter or group cards by color, or join with `dim_colors` to get the color names.
+
+**Dimension – Dates (`dim_date`):** To support time-based analysis, I included a standard date dimension table. This was generated using a dbt macro (dbt-utils has a date_spine macro, which I customized slightly). It contains one row per date for a broad range (covering all card release dates and then some). Each row has various calendar attributes: year, quarter, month name, day of week, etc. I included this because it's a best practice for warehousing, and it enables queries like "count of cards released per year" or "cards released by month name". In `dim_cards` I added a `release_date_key` that corresponds to `dim_date` so they can join.
+
+Together, these tables form a star schema: `dim_cards` is the central dimension (one could also see it as a fact table of cards, but since each card is an entity, I treat it as a dimension), linked to `dim_colors` via the `fact_cards_colors` table, and to `dim_date` via the release date.
+
+Why go to this trouble? Because now any analyst or application can query the data intuitively. Some examples of what became easy:
+
+- "How many cards of each color exist?" – Join `fact_cards_colors` with `dim_colors` and group by color name.
+- "What's the average mana cost of cards by rarity?" – Use `dim_cards`, group by rarity, and average the `total_mana_cost` field.
+- "List all rare or mythic cards that are instants or sorceries, with their mana costs and prices." – Query `dim_cards` filtering `rarity_rank >= 3` and `card_type_category IN ('Instant','Sorcery')`.
+- "How many creatures were released each year?" – Join `dim_cards` to `dim_date` on release date and filter `card_type_category = 'Creature'`, then group by year.
+
+The structured schema is both analysis-friendly and performance-friendly (since each table has a clear purpose and we're not repeating large text fields unnecessarily, except where needed).
+
+## Engineering the Pipeline: Structure, Testing, and Automation
+
+Behind the scenes, a lot of engineering went into making this pipeline robust and maintainable. Here are some practices I followed:
+
+### Project Structure & Modular SQL
+
+I organized the dbt project into folders corresponding to each stage of the pipeline:
+
+- `models/1_sources/` – Contains definitions of raw data sources. For example, `scryfall.yml` defining the source table for Scryfall cards.
+- `models/2_normalization/` – Contains the model that flattens the JSON (`scryfall_norm__cards`). This layer is about getting data into a normalized, relational format with one card per row.
+- `models/3_preprocessing/` – Contains intermediate models like `prep_cards` (which adds the computed fields like `total_mana_cost`, `rarity_rank`, etc.) and `prep_cards_colors` (the exploded colors). Think of this as the transformation layer where data is further cleaned and enriched.
+- `models/4_datawarehouse/` – Contains the final models: `dim_cards`, `dim_colors`, `fact_cards_colors`, and `dim_date`. These are the tables exposed to end users or BI tools for querying.
+
+This layered approach made the SQL much easier to develop and debug. If something was wrong in the mana cost calculation, I knew to look at `prep_cards.sql`. If a field was missing from final outputs, I could trace it back through the layers. Each model had a focused responsibility, and thanks to dbt's `ref()` function, they seamlessly feed into each other (dbt takes care of building them in order, since `dim_cards` ref's `prep_cards`, which ref's `scryfall_norm__cards`, etc.).
+
+Additionally, I used Jinja macros for any repetitive logic. For instance, I created a macro to log column names (for debugging) and used community packages like `dbt_utils` and `dbt_date` for handy functions (like generating that date spine and formatting dates). This kept the SQL clean and declarative.
+
+### CI/CD and Automation
+
+To ensure the pipeline runs regularly and reliably:
+
+**Automated Ingestion:** I set up a scheduled GitHub Actions workflow that runs the Python ingestion script daily. This means every day around noon, the latest Scryfall data is fetched and loaded into the warehouse. This keeps the dataset current (new card sets or price updates are captured).
+
+**Automated Transforms:** Since the raw table is updated daily, I can either schedule dbt runs or use an incremental model approach. In my case, I configured the `scryfall_norm__cards` model as an ephemeral or intermediate step and the later models as views in BigQuery that select from the raw JSON. This way, whenever I query the final tables, BigQuery is effectively executing the latest transformation logic on the fresh data. Alternatively, I could have scheduled `dbt run` nightly after the data load to materialize updated tables. Both approaches work; the key is automation so I don't have to manually run anything.
+
+**Testing & Quality:** dbt allows you to write tests for your models. I added a few basic tests, for example:
+- Uniqueness test on `dim_cards.card_id` (to ensure no duplicate cards).
+- Not null tests on important fields like card name, rarity (to catch if something went wrong in parsing).
+- Relationship tests to ensure that every `dim_cards.release_date_key` actually exists in `dim_date` (to verify the date dimension covers all release dates).
+
+During development, these tests caught issues (like I initially forgot that some cards have no colors, which could have caused nulls in the bridge table – the tests nudged me to handle colorless cards properly). In a production setting, I could also add tests for business logic, e.g., ensuring `total_mana_cost` is always >= 0, or that `rarity_rank` falls between 1 and 4.
+
+**Documentation:** Using dbt's documentation features, I wrote descriptions for the models and fields. This way, if someone generates the dbt docs site or browses the code, they can understand what each field means (for instance, documenting that `total_mana_cost` is the sum of mana symbols, or that `rarity_rank` is an ordinal with 4 = mythic). Good documentation is like leaving breadcrumbs for future explorers of your data.
+
+All these practices ensured that the project wasn't just a one-off script, but a maintainable pipeline. If a new type of card attribute is added by Scryfall or if I need to integrate another data source (like deck lists from an MTG site), I can extend the project in a controlled way. The CI pipeline would test the changes and the scheduled runs would keep data flowing without manual effort.
+
+## From JSON to Insights: What We Unlocked
+
+Finally, with the data pipeline in place, I could reap the rewards of all this work. Having a structured MTG card database unlocked all sorts of analysis and visualization opportunities. Some of the immediate insights and use cases included:
+
+**Power Curves & Mana Curves:** I visualized the distribution of creature power/toughness by mana cost. Because `dim_cards` had numeric fields for power, toughness, and total mana cost, I could easily create a scatter plot of mana cost vs power to see the general trend. (It's pretty clear that as mana cost increases, average power increases, but outliers like cards with high cost and low power or vice versa are interesting to identify!)
+
+**Color Distribution:** Using the `fact_cards_colors` table, I calculated how many cards exist of each color and color combination. Unsurprisingly, the single-color cards dominate, but it was fun to quantify, for example, how many multi-colored cards exist and which color pair is most common (I found that certain popular pairings like White-Blue and Red-Green have a ton of cards, especially in recent sets that emphasize those pairings).
+
+**Rarity Insights:** With `rarity_rank` available, I checked the average mana cost by rarity. Intuitively, you might expect mythic cards to have higher mana costs (big splashy effects), but the data showed a more nuanced story – while many mythics are costly, there are also cheap mythics meant for specific combo strategies. Being able to easily query this was satisfying.
+
+**Set Analysis:** I joined `dim_cards` with the `dim_date` to analyze how the number of cards per set (or per year) has grown over time. The data confirmed the rapid expansion of Magic: The Gathering in the last decade – recent sets contain far more cards on average than early sets in the 90s. I could also filter by `card_type_category` to see, for instance, the trend of creature cards per year (which also grew – creatures have become more central in design).
+
+**Pricing Dashboards:** Since I included the latest USD price for each card in the data, I was able to create a quick dashboard of the top 10 most expensive cards and their details. (No surprise, the infamous Black Lotus tops the list in my data with a staggering price, followed by other Power Nine cards and promotional rarities.) More useful though, having price data means I could calculate things like average price by color or by set. For example, I discovered that on average, older sets like Alpha/Beta have a higher average card price (due to many valuable old cards) compared to a modern standard set which might have most cards around a few cents except a couple of chase cards.
+
+**Deck Building Tool Potential:** With this card data structured, a next step could be to integrate it with deck lists from sites like Archidekt or TCG player data. One can imagine joining a deck's list of cards to `dim_cards` to instantly enrich a deck with card attributes (mana curve, color spread, average rarity, total deck price, etc.). The groundwork is laid for building a full-fledged MTG analytics platform or a recommendation engine for deck building.
+
+Perhaps the most gratifying part was showing this to fellow MTG friends. In a jupyter notebook or a BI tool connected to the warehouse, we could now ask questions and get answers almost instantly. Which set had the highest average creature power? (It turned out a special set with only giant creatures held that title.) How many legendary cards exist versus non-legendary? (We could answer that by searching `oracle_text` or `type_line` for "Legendary"). The data was at our fingertips.
+
+And remember, all of this was made possible by the pipeline that turned an otherwise messy JSON dump into a queryable goldmine. Without the transformation process, answering these questions would have been cumbersome at best.
+
+## Next Steps & Reflections
+
+This project was as much a labor of love as it was a technical endeavor. On one hand, I got to play with Magic cards in a totally new way – treating the game as data. On the other hand, I got to flex my data engineering muscles with modern tools like dbt and cloud data warehouses.
+
+What's next? The beauty of this pipeline is that it can keep evolving:
+
+**Incorporating New Data Sources:** Beyond Scryfall, there are other MTG data sources. For instance, I could integrate deck data (which cards are played together frequently), or game results from tournaments to see how card attributes correlate with win rates. The dimensional model can expand to accommodate these (e.g., a fact table for deck-card combinations, or a fact table for tournament results linked to cards).
+
+**Time Travel (Historical Data):** Currently, the pipeline focuses on the latest state of cards and their current prices. A natural extension is to store historical snapshots. By running the pipeline regularly and keeping past results (perhaps using dbt snapshots or partitioned tables by date), I could analyze how card prices change over time or how the introduction of new sets shifts the meta. Imagine a graph of a card's price over time, or tracking how the average mana cost of new cards has crept up year by year.
+
+**Enhanced Analytics & ML:** With clean data, we could feed it into machine learning models. Maybe predict the price of a card based on its attributes? Or cluster cards into archetypes based on their attributes? The possibilities are endless once the data is clean and accessible.
+
+**Community and Sharing:** I plan to share slices of this data and possibly dashboards with the MTG community. It could power fan sites or just serve as a sandbox for others to run queries. Given that the pipeline is code-based and repeatable, anyone interested (with access to the Scryfall API) could replicate or adapt it for their needs.
+
+In reflection, this journey reinforced a key insight for me: **Data projects are so much more rewarding when they're about something you love**. The hours spent wrangling JSON and writing SQL felt more like a puzzle game than work, precisely because I cared about the outcome. And the outcome wasn't just a set of tables—it was insights and answers to questions I deeply cared about, and a toolset that others could potentially use to explore their own questions about Magic: The Gathering.
+
+I’m incredibly enthusiastic about where this project can go next. The pipeline from JSON to insights is up and running, and it feels like I’ve only scratched the surface of what can be done. Just like in a great game of Magic, each card drawn (or each new data source integrated) opens up new possibilities and strategies. Here’s to many more experiments at the intersection of data engineering and gaming fandom! Thanks for reading, and may your data journeys be as magical as your games! 🧙‍♀️✨
