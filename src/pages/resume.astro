@@ -1,6 +1,5 @@
 ---
 // src/pages/resume.astro
-
 import PageLayoutSplit from "@layouts/PageLayoutSplit.astro";
 import { getEntryBySlug } from "astro:content";
 import type { CollectionEntry } from "astro:content";
@@ -12,10 +11,31 @@ const layout = post?.data?.style?.template || "split";
 
 {layout === "split" && (
   <PageLayoutSplit {...(post?.data || {})}>
-    <section class="max-w-4xl mx-auto px-6 py-12">
-      <article class="prose prose-lg prose-neutral dark:prose-invert">
+    <section class="w-full px-4 py-8">
+      <article class="resume-content">
         {Content && <Content />}
       </article>
     </section>
   </PageLayoutSplit>
 )}
+
+<style>
+  .resume-content {
+    /* Allow full width for PDF display */
+    max-width: none;
+    width: 100%;
+  }
+  
+  /* Basic typography styling for text content */
+  .resume-content h1,
+  .resume-content h2,
+  .resume-content h3 {
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+  
+  .resume-content p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+</style>

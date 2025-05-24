@@ -6,7 +6,7 @@ style:
   template: split
   page_class: "resume-page"
   hero_image_opacity: 0.5
-hero_buttons_right: # Add this!
+hero_buttons_right:
   - component: Link
     label: resume.PDF
     href: /resume.pdf
@@ -16,10 +16,49 @@ hero_buttons_right: # Add this!
     color: surface-primary
 ---
 
-        <iframe 
-          src="/resume_en.pdf#toolbar=0" 
-          width="100%" 
-          height="10000px" 
-          style="border: none; margin-top: 2rem;"
-          loading="lazy"
-        ></iframe>
+<div className="pdf-container">
+  <iframe
+    src="/resume_en.pdf#toolbar=0&navpanes=0&scrollbar=0"
+    className="pdf-iframe"
+    loading="lazy"
+    title="Bruno Rassat Resume"
+  />
+</div>
+
+<style jsx>{`
+  .pdf-container {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    margin: 2rem auto;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+ 
+  .pdf-iframe {
+    width: 100%;
+    height: 80vh;
+    min-height: 800px;
+    border: none;
+    display: block;
+  }
+ 
+  @media (max-width: 768px) {
+    .pdf-container {
+      margin: 1rem;
+    }
+   
+    .pdf-iframe {
+      height: 70vh;
+      min-height: 600px;
+    }
+  }
+ 
+  @media (max-width: 480px) {
+    .pdf-iframe {
+      height: 60vh;
+      min-height: 500px;
+    }
+  }
+`}</style>
