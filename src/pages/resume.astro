@@ -1,0 +1,21 @@
+---
+// src/pages/resume.astro
+
+import PageLayoutSplit from "@layouts/PageLayoutSplit.astro";
+import { getEntryBySlug } from "astro:content";
+import type { CollectionEntry } from "astro:content";
+
+const post: CollectionEntry<"resume"> | undefined = await getEntryBySlug("resume", "resume");
+const Content = post ? (await post.render()).Content : null;
+const layout = post?.data?.style?.template || "split";
+---
+
+{layout === "split" && (
+  <PageLayoutSplit {...(post?.data || {})}>
+    <section class="max-w-4xl mx-auto px-6 py-12">
+      <article class="prose prose-lg prose-neutral dark:prose-invert">
+        {Content && <Content />}
+      </article>
+    </section>
+  </PageLayoutSplit>
+)}
