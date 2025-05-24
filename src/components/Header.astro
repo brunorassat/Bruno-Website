@@ -54,9 +54,7 @@ const isActive = (href) => {
               <Icon name="shopping-cart" class="h-6 w-6" />
             </CartButton>
           </li>
-          <li>
-            <PageFind />
-          </li>
+
 
           {social &&
             social.slice(0, 5).map((link) => (
@@ -72,9 +70,14 @@ const isActive = (href) => {
               </li>
             ))}
 
-          <li>
+            <li class="text-neutral-900 dark:text-white">
+            <PageFind />
+            </li>
+            <!-- Theme toggle -->
+            <li class="text-neutral-900 dark:text-white">
             <ColorSwitch client:idle />
-          </li>
+            </li>
+
 
           <li class="md:hidden">
             <NavMobile
