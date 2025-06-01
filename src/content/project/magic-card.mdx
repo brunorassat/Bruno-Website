@@ -38,11 +38,11 @@ date: 2023-09-03T10:31:47.439Z
   ></iframe>
 </div>
 
-*As both a data nerd and a lifelong Magic: The Gathering (MTG) fan, I embarked on a quest to turn a trove of raw MTG card data into actionable insights. This is the story of how I built a data pipeline—using **dbt (Data Build Tool)**, some SQL magic, and a bit of cloud wizardry—to transform JSON data from the Scryfall API into a structured data warehouse. Along the way, I wrestled with nested JSON hydras, cast transformation spells on mana costs and rarities, and ultimately unlocked a treasure chest of analytics possibilities.*
+*As both a data nerd and a lifelong Magic: The Gathering (MTG) fan, I embarked on a quest to turn a trove of raw MTG card data into actionable insights. This is the story of how I built a data pipeline, using **dbt (Data Build Tool)**, some SQL magic, and a bit of cloud wizardry, to transform JSON data from the Scryfall API into a structured data warehouse. Along the way, I wrestled with nested JSON hydras, cast transformation spells on mana costs and rarities, and ultimately unlocked a treasure chest of analytics possibilities.*
 
 ## Motivation: When Data Meets Magic
 
-I've always been passionate about Magic: The Gathering, a trading card game rich with **decades of cards and data**. Each card has a tapestry of attributes: mana costs, colors, card types, rarities, power/toughness, artist, release set, and even market prices. As a techie, I couldn't help but wonder—*what insights lie hidden in all that data*?
+I've always been passionate about Magic: The Gathering, a trading card game rich with **decades of cards and data**. Each card has a tapestry of attributes: mana costs, colors, card types, rarities, power/toughness, artist, release set, and even market prices. As a techie, I couldn't help but wonder, *what insights lie hidden in all that data*?
 
 Some questions that intrigued me as a fan and data enthusiast included:
 
@@ -51,7 +51,7 @@ Some questions that intrigued me as a fan and data enthusiast included:
 - **Historical Trends:** Has the average power of creatures increased over the years? Do newer sets tend to have more complex multi-color cards?
 - **Price Analysis:** What are the most expensive cards and how do prices correlate with card attributes like rarity or color?
 
-To answer these questions (and fuel my own deck-building decisions!), I needed a **comprehensive dataset** of MTG cards that I could query and analyze. Luckily, the community-driven **Scryfall API** offers a complete catalog of Magic cards. Unluckily, that data comes as **nested JSON**—great for interchange, but not immediately ready for SQL analysis. Thus began my journey: from raw JSON to a polished data warehouse, using dbt to bridge the gap.
+To answer these questions (and fuel my own deck-building decisions!), I needed a **comprehensive dataset** of MTG cards that I could query and analyze. Luckily, the community-driven **Scryfall API** offers a complete catalog of Magic cards. Unluckily, that data comes as **nested JSON**, great for interchange, but not immediately ready for SQL analysis. Thus began my journey: from raw JSON to a polished data warehouse, using dbt to bridge the gap.
 
 ## The Challenge: Raw JSON from the Scryfall API
 
@@ -85,11 +85,11 @@ At first glance, it's a treasure trove of information: card names, mana costs, c
 
 **Inconvenient Formats:** Fields like "mana_cost" use curly brace notation (e.g., "2GG" for a card costing 2 generic mana and 2 Green mana, where "G" is the string for Green mana). These are great for human reading or display, but if I want to sum up mana costs or compare them numerically, I need to parse those strings into numbers, treating symbols like "G" as string values, not variables.
 
-**Inconsistencies and Missing Data:** Not all cards have the same attributes. Creatures have power/toughness values, but spells do not. Some cards have multiple types (e.g., "Artifact Creature — Golem") and some have none. Some older cards might lack price data. The dataset required cleaning and standardization to handle these variations.
+**Inconsistencies and Missing Data:** Not all cards have the same attributes. Creatures have power/toughness values, but spells do not. Some cards have multiple types (e.g., "Artifact Creature ,  Golem") and some have none. Some older cards might lack price data. The dataset required cleaning and standardization to handle these variations.
 
 **Scale:** The bulk data contains tens of thousands of cards. Efficiency matters. A naive approach to handling the JSON could be slow or expensive in a data warehouse environment.
 
-In short, the raw Scryfall JSON is like a multiverse of data—full of potential, but you need the right spells (or tools) to harness it. My mission was clear: transform this JSON into structured tables that any analyst (or curious Planeswalker 🧙‍♂️) could easily query.
+In short, the raw Scryfall JSON is like a multiverse of data, full of potential, but you need the right spells (or tools) to harness it. My mission was clear: transform this JSON into structured tables that any analyst (or curious Planeswalker 🧙‍♂️) could easily query.
 
 ## Enter dbt: Taming the Data Hydra
 
@@ -103,7 +103,7 @@ To tame the JSON and unlock its secrets, I turned to **dbt (Data Build Tool)**. 
 
 **Clarity with Sources:** In dbt, you can define sources which represent raw data tables. I defined the Scryfall JSON dataset as a source named `scryfall.mtg_cards`. This made it clear which models depended on external raw data, and I could add tests to validate that source (e.g., check that we actually have data loaded).
 
-With dbt in hand, I sketched out a plan for the pipeline. First, I'd ingest the raw data into a table. Next, use dbt to normalize that data—extracting the nested JSON fields into a relational form. Then, perform further transformations to enrich the data (compute new fields like total mana cost, classify types, etc.). Finally, organize the polished data into a dimensional model (tables structured for easy querying and analysis).
+With dbt in hand, I sketched out a plan for the pipeline. First, I'd ingest the raw data into a table. Next, use dbt to normalize that data, extracting the nested JSON fields into a relational form. Then, perform further transformations to enrich the data (compute new fields like total mana cost, classify types, etc.). Finally, organize the polished data into a dimensional model (tables structured for easy querying and analysis).
 
 ## Data Ingestion: From Scryfall to Warehouse
 
@@ -154,7 +154,7 @@ A few things to note in this snippet:
 
 - I used JSON extraction functions provided by the warehouse (BigQuery in my case) to pluck out fields. For example, `JSON_VALUE(card_obj, '$.name')` gives me the name of the card, and `JSON_EXTRACT_ARRAY(card_obj, '$.colors')` gives me the array of colors.
 - The `unnest(JSON_EXTRACT_ARRAY(json_data))` is the key step that takes the array of card JSON objects and turns it into a table of individual `card_obj` rows. After this, each row corresponds to one card.
-- At this stage, everything is still text (even numeric fields are strings) because JSON stores them as text. That's okay—we'll convert data types in the next steps.
+- At this stage, everything is still text (even numeric fields are strings) because JSON stores them as text. That's okay, we'll convert data types in the next steps.
 
 After this normalization step, I had a table `scryfall_norm__cards` where each card was a row with basic columns like `card_id`, `name`, `mana_cost_raw` (still with curly braces), `color_array` (still as an array type), `rarity`, etc. This was much easier to work with than the raw JSON blob. However, it was still a staging area – not quite the final form. Next, I needed to enrich and transform the data further: calculate numeric values, categorize text fields, and prepare it for the dimensional model.
 
@@ -185,7 +185,7 @@ unnest(split(regexp_replace(mana_cost_raw, r'\{|\}', ''), '')) as mana_symbol  -
 group by card_id;
 ```
 
-This query (incorporated in a dbt model) gives me a `total_mana_cost` for each card. For example, the "2GG" cost would yield 4 (2 generic + 1 + 1 for the two green symbols). A card with no cost (like many lands) would yield 0. This numeric field is super handy for analysis—now I can easily filter or average mana costs in SQL queries or visualizations.
+This query (incorporated in a dbt model) gives me a `total_mana_cost` for each card. For example, the "2GG" cost would yield 4 (2 generic + 1 + 1 for the two green symbols). A card with no cost (like many lands) would yield 0. This numeric field is super handy for analysis, now I can easily filter or average mana costs in SQL queries or visualizations.
 
 ### 2. Rarity Ranking
 
@@ -205,7 +205,7 @@ Now, `rarity_rank` gives an intuitive ordering: higher means rarer. If I want to
 
 ### 3. Type Classification
 
-Each Magic card's type is described in a free-text line (the `type_line` field). For example: "Creature — Elf Druid", "Instant", "Legendary Artifact Creature — Dragon", etc. These are flavorful and detailed, but for analysis I often want broader categories.
+Each Magic card's type is described in a free-text line (the `type_line` field). For example: "Creature ,  Elf Druid", "Instant", "Legendary Artifact Creature ,  Dragon", etc. These are flavorful and detailed, but for analysis I often want broader categories.
 
 I decided to classify each card into a primary type category: e.g., creature, sorcery, instant, artifact, enchantment, land, or other. I implemented this by checking keywords in the type line, using a CASE statement with `LOWER(type_line) contains` logic:
 
@@ -221,7 +221,7 @@ case
 end as card_type_category
 ```
 
-This way, a card like "Goblin Chieftain" with `type_line` "Creature — Goblin Warrior" gets classified as Creature. A "Lightning Bolt" (`type_line` "Instant") becomes Instant. A "Shatterstorm" (`type_line` "Sorcery") becomes Sorcery. And a "Nicol Bolas, Dragon-God" (`type_line` "Legendary Planeswalker — Bolas") would fall into Other (since I didn't explicitly carve out Planeswalkers in the first iteration).
+This way, a card like "Goblin Chieftain" with `type_line` "Creature ,  Goblin Warrior" gets classified as Creature. A "Lightning Bolt" (`type_line` "Instant") becomes Instant. A "Shatterstorm" (`type_line` "Sorcery") becomes Sorcery. And a "Nicol Bolas, Dragon-God" (`type_line` "Legendary Planeswalker ,  Bolas") would fall into Other (since I didn't explicitly carve out Planeswalkers in the first iteration).
 
 This simplification enabled me to, for example, quickly count how many creatures vs instants vs sorceries are in a given set or analyze trends like "are we getting more creatures over time compared to spells?".
 
@@ -332,6 +332,6 @@ What's next? The beauty of this pipeline is that it can keep evolving:
 
 **Community and Sharing:** I plan to share slices of this data and possibly dashboards with the MTG community. It could power fan sites or just serve as a sandbox for others to run queries. Given that the pipeline is code-based and repeatable, anyone interested (with access to the Scryfall API) could replicate or adapt it for their needs.
 
-In reflection, this journey reinforced a key insight for me: **Data projects are so much more rewarding when they're about something you love**. The hours spent wrangling JSON and writing SQL felt more like a puzzle game than work, precisely because I cared about the outcome. And the outcome wasn't just a set of tables—it was insights and answers to questions I deeply cared about, and a toolset that others could potentially use to explore their own questions about Magic: The Gathering.
+In reflection, this journey reinforced a key insight for me: **Data projects are so much more rewarding when they're about something you love**. The hours spent wrangling JSON and writing SQL felt more like a puzzle game than work, precisely because I cared about the outcome. And the outcome wasn't just a set of tables, it was insights and answers to questions I deeply cared about, and a toolset that others could potentially use to explore their own questions about Magic: The Gathering.
 
 I’m incredibly enthusiastic about where this project can go next. The pipeline from JSON to insights is up and running, and it feels like I’ve only scratched the surface of what can be done. Just like in a great game of Magic, each card drawn (or each new data source integrated) opens up new possibilities and strategies. Here’s to many more experiments at the intersection of data engineering and gaming fandom! Thanks for reading, and may your data journeys be as magical as your games! 🧙‍♀️✨
