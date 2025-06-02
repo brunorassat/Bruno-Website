@@ -5,7 +5,16 @@ import HeroImage from "@components/hero/HeroImage.astro";
 import HeroPlain from "@components/hero/HeroPlain.astro";
 
 const props = Astro.props;
-const { title, description, blocks, style, thumbnail, og_image } = Astro.props;
+const {
+  title,
+  description,
+  blocks,
+  style,
+  thumbnail,
+  og_image,
+  typewriter, // 🔥 grab typewriter from props
+} = Astro.props;
+
 const contentClass = style.hero_template === "plain" ? "py-0" : "py-20";
 const hasBlocks = blocks && blocks.length > 0;
 ---
@@ -24,6 +33,7 @@ const hasBlocks = blocks && blocks.length > 0;
       </HeroPlain>
     )
   }
+
   {
     style.hero_template == "image" && (
       <HeroImage {...props}>
@@ -32,9 +42,43 @@ const hasBlocks = blocks && blocks.length > 0;
     )
   }
 
+  <!-- ✨ TYPEWRITER SECTION -->
+  {
+    typewriter && (
+      <section class="text-center mt-4">
+        <span id="typewriter" class="block text-lg font-medium text-white opacity-80"></span>
+        <script is:inline>
+          document.addEventListener("DOMContentLoaded", () => {
+            const texts = {JSON.stringify(typewriter)};
+            let i = 0, j = 0, isDeleting = false;
+            const el = document.getElementById("typewriter");
+
+            function type() {
+              if (!el) return;
+              const current = texts[i];
+              el.textContent = current.slice(0, j);
+              if (!isDeleting && j < current.length) {
+                j++;
+              } else if (isDeleting && j > 0) {
+                j--;
+              } else {
+                isDeleting = !isDeleting;
+                if (!isDeleting) i = (i + 1) % texts.length;
+                setTimeout(type, 800); return;
+              }
+              setTimeout(type, isDeleting ? 60 : 100);
+            }
+
+            type();
+          });
+        </script>
+      </section>
+    )
+  }
+
   <div class="relative z-10 w-full" id="more">
     <div
-      class=`page__content container-${style.container || 'md'} ${style.content_class || contentClass} `
+      class={`page__content container-${style.container || 'md'} ${style.content_class || contentClass}`}
     >
       <slot />
       {!hasBlocks && <slot name="nav" />}
@@ -53,6 +97,7 @@ const hasBlocks = blocks && blocks.length > 0;
         </>
       )
     }
+
     <div class="pointer-events-none fixed bottom-0 z-40 w-full">
       <slot name="cart" />
     </div>
@@ -67,6 +112,7 @@ const hasBlocks = blocks && blocks.length > 0;
     &:has(> .richtext:empty) {
       display: none;
     }
+
     .img,
     iframe {
       width: calc(100% + var(--container-spacing));
