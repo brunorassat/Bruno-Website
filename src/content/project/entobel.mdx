@@ -1,0 +1,147 @@
+---
+tag:
+  - Professionnal
+title: Farming Insects
+description: Exploring sustainable insect farming for food, feed, and environmental benefits.
+intro: How data unveil their secrets
+hero_buttons:
+  - component: Link
+    label: Read article
+    href: "#more"
+    class: surface-primary
+    icon_only: false
+    icon: /src/icons/down-line.svg
+    color: surface-primary
+style:
+  template: full
+  card_template: grid
+  hero_image_opacity: ""
+  container: md
+  block_class: my-0
+thumbnail: /src/assets/bsf_closeup.jpg
+date: 2023-09-03T10:31:47.439Z
+---
+
+<div style={{ marginTop: "1.5rem" }}>
+  <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+    <div style={{ flex: 1 }}>
+      Entobel is a pioneer in sustainable insect protein and has recently opened one of the world’s largest insect production facilities in Vietnam. This cutting-edge black soldier fly farm operates at industrial scale, featuring **vertical insect rearing with robotics, sensors, and data analytics to enhance productivity**. As the Lead Data Analyst at Entobel, I was tasked with transforming the factory’s raw data streams into actionable business intelligence. The goal was clear: **enable data-driven operations** in real time, from tracking volumes procuced, costs induced, raw material availabilities in order to support daily decision-making by leadership.
+    </div>
+    <img
+      src="/src/assets/entobel_factory.png"
+      alt="Entobel Factory"
+      style={{
+        maxWidth: "320px",
+        width: "100%",
+        borderRadius: "12px",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+        objectFit: "cover"
+      }}
+    />
+  </div>
+  <span className="text-xs text-gray-400 italic" style={{ display: "block", marginTop: "0.5rem" }}>
+    (Note: Detailed data architecture is proprietary.)
+  </span>
+</div>
+
+## Challenges
+
+Running a high-tech insect farming operation at scale presented several data challenges:
+
+- **Siloed and Delayed Information:** Information on raw material stock levels and production metrics was scattered across spreadsheets and manual logs. By the time reports reached decision-makers, they were often outdated.
+- **Unclear Production Costs:** Calculating the true cost of production (from larvae hatch to processed protein meal) was labor-intensive and infrequent.
+- **Rapid Scale and Complexity:** With Entobel expanding to a commercial-scale facility, data volume and complexity grew exponentially. Multiple departments needed to **share a single source of truth**.
+
+## End-to-End Data Solution Overview
+
+I took full ownership of architecting and implementing an **integrated data infrastructure** to meet these challenges. The solution spanned the entire data lifecycle  from collection on the factory floor to dashboards in the boardroom.
+
+### 1. Centralized Data Platform
+
+All relevant data streams (inventory transactions, sensor readings, production logs, purchase orders, etc.) were connected to a central data repository. I developed custom ETL processes and DBT models to clean and combine the data. This unified platform broke down departmental data silos while maintaining strict access controls.
+
+### 2. Real-Time Raw Material Monitoring
+
+A major initiative was live tracking of the factory’s raw material stocks (e.g. feed ingredients for the larvae). I integrated inventory and IoT data to update stock levels continuously. **Power BI dashboards** now display current stock levels with color-coded alerts for low thresholds. This real-time visibility helps prevent stock-outs and ensures the millions of larvae are always fed adequately.
+
+### 3. Actual Production Cost Tracking
+
+I developed a robust cost tracking model combining data from production, procurement, and finance. Costs such as feed, energy, labor, and equipment runtime are now captured and allocated to production batches. Interactive **Power BI reports** show cost per kg, budget variances, and trends. Leadership can drill into cost drivers to improve efficiency.
+
+## Power BI Dashboards for Daily Decisions
+
+<div style={{ display: "flex", alignItems: "flex-start", gap: "2rem", marginBottom: "1.5rem" }}>
+  <div style={{ flex: 1 }}>
+    <div style={{ height: "1rem" }}></div>
+    All processed data feeds into **Power BI dashboards used daily by Entobel’s leadership team**. I designed multiple dashboards:
+
+    <div style={{ display: "flex", alignItems: "flex-start", gap: "1.5rem" }}>
+      {/* <img
+      src="/src/assets/powerbi.png"
+      alt="Power BI Dashboard"
+      style={{
+        maxWidth: "100px",
+        width: "100%",
+        borderRadius: "12px",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+        objectFit: "cover"
+      }}
+      /> */}
+      <div>
+      - **Executive Dashboard:** Daily refreshed overview of inventory, production output, and unit cost.
+      - **Operations Dashboard:** Live metrics for production managers, enabling real-time adjustments.
+      - **Financial Dashboard:** Tracks actual costs and margins for strategic budgeting.
+      - **Procurement Dashboard:** Monitors supplier performance, purchasing cycles, and raw material price trends to support cost-effective sourcing decisions.
+      - **R&D Dashboard:** Tracks experimental feed trials, growth rates, and biological performance metrics to accelerate innovation in insect farming.
+      - **KPI Tracker:** Consolidates cross-departmental performance indicators (finance, ops, sales) in one place to align the entire company around strategic goals.
+      </div>
+    </div>
+
+    Dashboards are interactive and drillable, fostering trust and empowering teams with timely, accurate data.
+  </div>
+</div>
+
+## Outcomes and Impact
+
+- **Real-Time Visibility:** Prevented feedstock stock-outs and enabled proactive inventory planning.
+- **Cost Efficiency:** Provided unprecedented transparency into production cost structures.
+- **Decision-Making:** Leadership now starts each day with data-driven discussions based on live dashboards.
+- **Cross-Department Alignment:** Created a single source of truth trusted by all departments.
+- **Scalability:** The data architecture supports future expansion to new sites and product lines.
+
+## Conclusion
+
+<div style={{ display: "flex", alignItems: "flex-start", gap: "2rem", flexWrap: "wrap" }}>
+  <div style={{ flex: 2, minWidth: "300px" }}>
+    <p>
+      For a rapidly scaling agritech company like Entobel, such a data foundation is critical.
+      It turns the immense complexity of farming millions of insects (and the volumes of data they generate)
+      into clarity and direction for the business.
+    </p>
+    <p>
+      As a result, data has become a strategic asset at Entobel, guiding decisions that drive sustainable growth
+      and innovationexactly what a modern, data-driven enterprise strives for. My work at Entobel
+      showcases the impact of marrying technical skill with business focus: the ability to listen to operational needs,
+      build a tailored data solution, and ultimately, deliver insights that propel the company forward.
+    </p>
+  </div>
+
+  <div style={{ flex: 1, minWidth: "320px", maxWidth: "360px" }}>
+    <iframe
+      src="https://www.linkedin.com/embed/feed/update/urn:li:share:7211651014041456640?collapsed=1"
+      width="100%"
+      height="1200"
+      frameBorder="0"
+      allowFullScreen
+      title="Embedded LinkedIn post"
+      style={{
+      borderRadius: "16px",
+      boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+      border: "none",
+      overflow: "hidden",
+      minHeight: "300px",
+      minWidth: "320px"
+      }}
+    ></iframe>
+  </div>
+</div>
