@@ -23,25 +23,36 @@ date: 2023-09-03T10:31:47.439Z
 ---
 
 <div style={{ marginTop: "1.5rem" }}>
-  <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-    <div style={{ flex: 1 }}>
-      Entobel is a pioneer in sustainable insect protein and has recently opened one of the world’s largest insect production facilities in Vietnam. This cutting-edge black soldier fly farm operates at industrial scale, featuring **vertical insect rearing with robotics, sensors, and data analytics to enhance productivity**. As the Lead Data Analyst at Entobel, I was tasked with transforming the factory’s raw data streams into actionable business intelligence. The goal was clear: **enable data-driven operations** in real time, from tracking volumes procuced, costs induced, raw material availabilities in order to support daily decision-making by leadership.
+  <div
+    style={{
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "1.5rem",
+      alignItems: "flex-start"
+    }}
+  >
+    <div style={{ flex: "1 1 300px", minWidth: "280px" }}>
+      Entobel is a pioneer in sustainable insect protein and has recently opened one of the world’s largest insect production facilities in Vietnam. This cutting-edge black soldier fly farm operates at industrial scale, featuring <strong>vertical insect rearing with robotics, sensors, and data analytics to enhance productivity</strong>. As the Lead Data Analyst at Entobel, I was tasked with transforming the factory’s raw data streams into actionable business intelligence. The goal was clear: <strong>enable data-driven operations</strong> in real time, from tracking volumes procured, costs induced, raw material availabilities in order to support daily decision-making by leadership.
+
+      <span className="text-xs text-gray-400 italic" style={{ display: "block", marginTop: "0.5rem" }}>
+        (Note: Detailed data architecture is proprietary.)
+      </span>
     </div>
+
     <img
       src="/entobel_factory.png"
       alt="Entobel Factory"
       style={{
-        maxWidth: "320px",
+        flex: "1 1 320px",
         width: "100%",
+        maxWidth: "480px",
         borderRadius: "12px",
         boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-        objectFit: "cover"
+        objectFit: "cover",
+        minWidth: "280px"
       }}
     />
   </div>
-  <span className="text-xs text-gray-400 italic" style={{ display: "block", marginTop: "0.5rem" }}>
-    (Note: Detailed data architecture is proprietary.)
-  </span>
 </div>
 
 ## Challenges
