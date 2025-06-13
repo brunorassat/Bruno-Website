@@ -97,22 +97,17 @@ onMounted(() => {
     });
   });
 
-  /* Open modal if hash is present */
-  if (window.location.hash.startsWith("#contact")) {
+  /* Open modal if #contact or #bookme is present */
+  if (
+    window.location.hash.startsWith("#contact") ||
+    window.location.hash.startsWith("#bookme")
+  ) {
     const [, query] = window.location.hash.split("?");
     if (query) {
       const params = new URLSearchParams(query);
       const urlParam = params.get("url");
       if (urlParam) calendlyUrl.set(decodeURIComponent(urlParam));
     }
-    showContact.set(true);
-  }
-
-  /* Open modal when visiting /bookme */
-  if (window.location.pathname === "/bookme") {
-    const params = new URLSearchParams(window.location.search);
-    const urlParam = params.get("url");
-    if (urlParam) calendlyUrl.set(decodeURIComponent(urlParam));
     showContact.set(true);
   }
 });
