@@ -6,7 +6,7 @@
 import { watch, ref, onMounted } from "vue";
 import { useWindowSize } from "@vueuse/core";
 import { useDebounceFn } from "@vueuse/core";
-import { showContact } from "@src/store";
+import { showContact, calendlyUrl } from "@src/store";
 const { width } = useWindowSize();
 const shown = ref(false);
 
@@ -87,9 +87,26 @@ onMounted(() => {
   contactButtons.forEach((el) => {
     el.addEventListener("click", (e) => {
       e.preventDefault();
+      const url = el.dataset.url;
+      if (url) {
+        calendlyUrl.set(url);
+      } else {
+        calendlyUrl.set("");
+      }
       showContact.set(true);
     });
   });
+
+  /* Open modal if hash is present */
+  if (window.location.hash.startsWith("#contact")) {
+    const [, query] = window.location.hash.split("?");
+    if (query) {
+      const params = new URLSearchParams(query);
+      const urlParam = params.get("url");
+      if (urlParam) calendlyUrl.set(decodeURIComponent(urlParam));
+    }
+    showContact.set(true);
+  }
 });
 /* CREDITS, PLEASE LEAVE THIS IN PLACE */
 watch(width, (val) => {

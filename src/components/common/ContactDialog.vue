@@ -18,7 +18,7 @@
           <div class="dialog__content flex items-stretch justify-center p-0 w-full h-[85vh] md:h-[40rem]">
             <div
               class="calendly-inline-widget w-full h-full"
-              data-url="https://calendly.com/brunorassat/30min"
+              :data-url="$url || defaultUrl"
               style="min-width: 320px; height: 100%;"
             ></div>
           </div>
@@ -39,7 +39,7 @@
 <script setup>
 import { onMounted } from "vue";
 import { useStore } from "@nanostores/vue";
-import { showContact } from "@src/store";
+import { showContact, calendlyUrl } from "@src/store";
 
 const props = defineProps({
   contact: {
@@ -48,9 +48,12 @@ const props = defineProps({
 });
 
 const $show = useStore(showContact);
+const $url = useStore(calendlyUrl);
+const defaultUrl = "https://calendly.com/brunorassat/30min";
 
 const hide = () => {
   showContact.set(false);
+  calendlyUrl.set("");
 };
 
 onMounted(() => {
