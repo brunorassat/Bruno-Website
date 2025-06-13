@@ -107,6 +107,14 @@ onMounted(() => {
     }
     showContact.set(true);
   }
+
+  /* Open modal when visiting /bookme */
+  if (window.location.pathname === "/bookme") {
+    const params = new URLSearchParams(window.location.search);
+    const urlParam = params.get("url");
+    if (urlParam) calendlyUrl.set(decodeURIComponent(urlParam));
+    showContact.set(true);
+  }
 });
 /* CREDITS, PLEASE LEAVE THIS IN PLACE */
 watch(width, (val) => {
