@@ -83,13 +83,23 @@ onMounted(() => {
   }
 
   /* CONTACT FORM */
-  const contactButtons = document.querySelectorAll("[href='#contact']");
+  const contactButtons = document.querySelectorAll("[href='#contact'], [href='#bookme']");
   contactButtons.forEach((el) => {
     el.addEventListener("click", (e) => {
       e.preventDefault();
       showContact.set(true);
     });
   });
+
+  const checkHash = () => {
+    const hash = window.location.hash.toLowerCase();
+    if (hash === "#contact" || hash === "#bookme") {
+      showContact.set(true);
+    }
+  };
+
+  checkHash();
+  window.addEventListener("hashchange", checkHash);
 });
 /* CREDITS, PLEASE LEAVE THIS IN PLACE */
 watch(width, (val) => {
