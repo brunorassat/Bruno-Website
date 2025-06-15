@@ -90,28 +90,11 @@ onMounted(() => {
     const link = e.target.closest("a");
     if (link && link.hash === "#book-me") {
       e.preventDefault();
-
-      // Clean hash immediately if it got added
-      if (window.location.hash === "#book-me") {
-        window.history.replaceState(
-          null,
-          '',
-          window.location.pathname + window.location.search,
-        );
-      }
-
+      
+      // Set modal to show FIRST, then clean hash after a delay
       showContact.set(true);
-    }
-  };
-
-  document.addEventListener("click", contactClick);
-
-  /* URL HASH CHECK ON LOAD + OPTIONAL CLEANUP */
-  const checkHash = () => {
-    const hash = window.location.hash.toLowerCase();
-    if (hash === "#book-me") {
-      showContact.set(true);
-
+      
+      // Clean hash after modal has time to open
       if (CLEANUP_HASH) {
         setTimeout(() => {
           if (window.location.hash === "#book-me") {
@@ -121,8 +104,18 @@ onMounted(() => {
               window.location.pathname + window.location.search,
             );
           }
-        }, 100);
+        }, 100); // Small delay to ensure modal opens first
       }
+    }
+  };
+
+  document.addEventListener("click", contactClick);
+
+  /* URL HASH CHECK ON LOAD */
+  const checkHash = () => {
+    const hash = window.location.hash.toLowerCase();
+    if (hash === "#book-me") {
+      showContact.set(true);
     }
   };
 
@@ -133,6 +126,22 @@ onMounted(() => {
     document.removeEventListener("click", contactClick);
     window.removeEventListener("hashchange", checkHash);
   });
+});
+
+/* CLEANUP HASH AFTER MODAL IS CONFIRMED OPEN */
+watch(showContact, (val) => {
+  if (val && CLEANUP_HASH && window.location.hash === "#book-me") {
+    // Add a small delay to ensure the modal is fully rendered
+    setTimeout(() => {
+      if (window.location.hash === "#book-me") {
+        window.history.replaceState(
+          null,
+          '',
+          window.location.pathname + window.location.search,
+        );
+      }
+    }, 50);
+  }
 });
 
 /* CREDITS, PLEASE LEAVE THIS IN PLACE */
