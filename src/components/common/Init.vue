@@ -84,7 +84,7 @@ onMounted(() => {
 
   /* CONTACT FORM */
   const contactClick = (e) => {
-    const target = e.target.closest("a[href='#contact'], a[href='#bookme']");
+    const target = e.target.closest("a[href='#book-me']");
     if (target) {
       e.preventDefault();
       showContact.set(true);
@@ -95,7 +95,7 @@ onMounted(() => {
 
   const checkHash = () => {
     const hash = window.location.hash.toLowerCase();
-    if (hash === "#contact" || hash === "#bookme") {
+    if (hash === "#book-me") {
       showContact.set(true);
     }
   };
