@@ -1,14 +1,14 @@
-<template>
-  <div class="hide hidden"></div>
-</template>
-
 <script setup>
 import { watch, ref, onMounted, onUnmounted } from "vue";
 import { useWindowSize } from "@vueuse/core";
 import { useDebounceFn } from "@vueuse/core";
 import { showContact } from "@src/store";
+
 const { width } = useWindowSize();
 const shown = ref(false);
+
+// Optional: enable or disable cleanup of #book-me from the URL
+const CLEANUP_HASH = true;
 
 onMounted(() => {
   const root = document.documentElement;
@@ -24,12 +24,14 @@ onMounted(() => {
       Math.round(timeTaken / 1000),
     );
   };
+
   /* CHECK IF IS IOS DEVICE */
   const ua = navigator.userAgent;
   if (/iPad|iPhone|iPod/.test(ua)) {
     document.documentElement.setAttribute("data-ios", 1);
   }
-  /* SET SCROLL BEHAVIOR (PAGE VIEW ANIMATIONS + SMOOTH SCROLL IS NOT WORKING ) */
+
+  /* SET SCROLL BEHAVIOR */
   setTimeout(() => {
     html.style["scroll-behavior"] = "smooth";
   }, 500);
@@ -62,6 +64,7 @@ onMounted(() => {
   }, 20);
 
   window.addEventListener("scroll", () => scrollHandler(), { passive: true });
+
   /* PARALLAX ANIMATIONS */
   const parallaxReveal = document.querySelectorAll(".nebulix-parallax");
   if (!document.documentElement.dataset.ios) {
@@ -82,21 +85,44 @@ onMounted(() => {
     });
   }
 
-  /* CONTACT FORM */
+  /* CONTACT FORM CLICK HANDLER */
   const contactClick = (e) => {
-    const target = e.target.closest("a[href='#book-me']");
-    if (target) {
+    const link = e.target.closest("a");
+    if (link && link.hash === "#book-me") {
       e.preventDefault();
+
+      // Clean hash immediately if it got added
+      if (window.location.hash === "#book-me") {
+        window.history.replaceState(
+          null,
+          '',
+          window.location.pathname + window.location.search,
+        );
+      }
+
       showContact.set(true);
     }
   };
 
   document.addEventListener("click", contactClick);
 
+  /* URL HASH CHECK ON LOAD + OPTIONAL CLEANUP */
   const checkHash = () => {
     const hash = window.location.hash.toLowerCase();
     if (hash === "#book-me") {
       showContact.set(true);
+
+      if (CLEANUP_HASH) {
+        setTimeout(() => {
+          if (window.location.hash === "#book-me") {
+            window.history.replaceState(
+              null,
+              '',
+              window.location.pathname + window.location.search,
+            );
+          }
+        }, 100);
+      }
     }
   };
 
@@ -108,6 +134,7 @@ onMounted(() => {
     window.removeEventListener("hashchange", checkHash);
   });
 });
+
 /* CREDITS, PLEASE LEAVE THIS IN PLACE */
 watch(width, (val) => {
   if (!shown.value) {
