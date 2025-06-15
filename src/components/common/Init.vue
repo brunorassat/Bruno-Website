@@ -10,6 +10,25 @@ const shown = ref(false);
 // Optional: enable or disable cleanup of #book-me from the URL
 const CLEANUP_HASH = true;
 
+// Bulletproof modal trigger function
+const triggerModal = () => {
+  console.log('Triggering modal...');
+  showContact.set(true);
+  
+  // Clean hash after modal is definitely open
+  if (CLEANUP_HASH) {
+    setTimeout(() => {
+      if (window.location.hash === "#book-me") {
+        window.history.replaceState(
+          null,
+          '',
+          window.location.pathname + window.location.search,
+        );
+      }
+    }, 200);
+  }
+};
+
 onMounted(() => {
   const root = document.documentElement;
   const html = document.getElementsByTagName("html")[0];
@@ -85,62 +104,106 @@ onMounted(() => {
     });
   }
 
-  /* CONTACT FORM CLICK HANDLER */
-  const contactClick = (e) => {
+  /* BULLETPROOF CONTACT MODAL HANDLERS */
+  
+  // Handle ALL clicks - this catches everything
+  const handleAllClicks = (e) => {
     const link = e.target.closest("a");
-    if (link && link.hash === "#book-me") {
-      e.preventDefault();
+    if (link) {
+      const href = link.getAttribute('href');
+      const hash = link.hash;
       
-      // Set modal to show FIRST, then clean hash after a delay
-      showContact.set(true);
-      
-      // Clean hash after modal has time to open
-      if (CLEANUP_HASH) {
-        setTimeout(() => {
-          if (window.location.hash === "#book-me") {
-            window.history.replaceState(
-              null,
-              '',
-              window.location.pathname + window.location.search,
-            );
-          }
-        }, 100); // Small delay to ensure modal opens first
+      // Check if it's a book-me link (multiple ways to be sure)
+      if (hash === "#book-me" || 
+          href === "#book-me" || 
+          href?.endsWith("#book-me") ||
+          link.getAttribute('href')?.includes('#book-me')) {
+        
+        console.log('Book-me link clicked:', href);
+        e.preventDefault();
+        e.stopPropagation();
+        
+        triggerModal();
+        return false;
       }
     }
   };
 
-  document.addEventListener("click", contactClick);
-
-  /* URL HASH CHECK ON LOAD */
-  const checkHash = () => {
+  // Handle hash changes (when someone navigates directly to #book-me)
+  const handleHashChange = () => {
     const hash = window.location.hash.toLowerCase();
+    console.log('Hash changed to:', hash);
+    
     if (hash === "#book-me") {
-      showContact.set(true);
+      triggerModal();
     }
   };
 
-  checkHash();
-  window.addEventListener("hashchange", checkHash);
+  // Handle initial page load with hash
+  const handleInitialHash = () => {
+    const hash = window.location.hash.toLowerCase();
+    console.log('Initial hash:', hash);
+    
+    if (hash === "#book-me") {
+      // Small delay to ensure everything is loaded
+      setTimeout(() => {
+        triggerModal();
+      }, 100);
+    }
+  };
 
+  // Attach event listeners with high priority
+  document.addEventListener("click", handleAllClicks, true); // Use capture phase
+  window.addEventListener("hashchange", handleHashChange);
+  
+  // Check initial hash on load
+  handleInitialHash();
+  
+  // Also check after a delay in case of late navigation
+  setTimeout(handleInitialHash, 500);
+
+  /* CLEANUP FUNCTION */
   onUnmounted(() => {
-    document.removeEventListener("click", contactClick);
-    window.removeEventListener("hashchange", checkHash);
+    document.removeEventListener("click", handleAllClicks, true);
+    window.removeEventListener("hashchange", handleHashChange);
   });
 });
 
-/* CLEANUP HASH AFTER MODAL IS CONFIRMED OPEN */
+/* WATCH FOR MODAL STATE CHANGES */
 watch(showContact, (val) => {
+  console.log('Modal state changed:', val);
+  
+  // Only clean hash if modal is opening and hash exists
   if (val && CLEANUP_HASH && window.location.hash === "#book-me") {
-    // Add a small delay to ensure the modal is fully rendered
+    // Double-check after a delay
     setTimeout(() => {
-      if (window.location.hash === "#book-me") {
+      if (showContact.get() && window.location.hash === "#book-me") {
+        console.log('Cleaning hash...');
         window.history.replaceState(
           null,
           '',
           window.location.pathname + window.location.search,
         );
       }
-    }, 50);
+    }, 300);
+  }
+});
+
+/* PERIODIC HASH CHECKER (NUCLEAR OPTION) */
+// This runs every 2 seconds to catch any missed #book-me hashes
+let hashChecker;
+onMounted(() => {
+  hashChecker = setInterval(() => {
+    if (window.location.hash === "#book-me" && !showContact.get()) {
+      console.log('Periodic hash check found #book-me, triggering modal');
+      triggerModal();
+    }
+  }, 2000);
+});
+
+onUnmounted(() => {
+  if (hashChecker) {
+    clearInterval(hashChecker);
   }
 });
 
