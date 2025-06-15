@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { watch, ref, onMounted } from "vue";
+import { watch, ref, onMounted, onUnmounted } from "vue";
 import { useWindowSize } from "@vueuse/core";
 import { useDebounceFn } from "@vueuse/core";
 import { showContact } from "@src/store";
@@ -83,12 +83,29 @@ onMounted(() => {
   }
 
   /* CONTACT FORM */
-  const contactButtons = document.querySelectorAll("[href='#contact']");
-  contactButtons.forEach((el) => {
-    el.addEventListener("click", (e) => {
+  const contactClick = (e) => {
+    const target = e.target.closest("a[href='#contact'], a[href='#bookme']");
+    if (target) {
       e.preventDefault();
       showContact.set(true);
-    });
+    }
+  };
+
+  document.addEventListener("click", contactClick);
+
+  const checkHash = () => {
+    const hash = window.location.hash.toLowerCase();
+    if (hash === "#contact" || hash === "#bookme") {
+      showContact.set(true);
+    }
+  };
+
+  checkHash();
+  window.addEventListener("hashchange", checkHash);
+
+  onUnmounted(() => {
+    document.removeEventListener("click", contactClick);
+    window.removeEventListener("hashchange", checkHash);
   });
 });
 /* CREDITS, PLEASE LEAVE THIS IN PLACE */
