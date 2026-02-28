@@ -1,0 +1,183 @@
+---
+tag:
+  - Personal
+title: PicoClaw Home Agent
+description: Building an always-on personal AI assistant on a Raspberry Pi Zero 2W using PicoClaw and Telegram.
+intro: A 10MB Go binary, a $15 board, and an always-on home agent in your pocket
+hero_buttons:
+  - component: Link
+    label: Read article
+    href: "#more"
+    class: surface-primary
+    icon_only: false
+    icon: /src/icons/down-line.svg
+    color: surface-primary
+style:
+  template: full
+  card_template: grid
+  hero_image_opacity: ""
+  container: md
+  block_class: my-0
+thumbnail: /src/assets/picoclaw-pi-zero-2w-board.jpeg
+date: 2026-02-28T00:00:00.000Z
+---
+
+<div style={{ marginTop: "1.5rem" }}>
+  <div
+    style={{
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "1.5rem",
+      alignItems: "flex-start"
+    }}
+  >
+    <div style={{ flex: "1 1 300px", minWidth: "280px" }}>
+      I wanted a personal AI assistant that was always on, private, and cheap to run. The answer was a <strong>Raspberry Pi Zero 2W</strong> — a $15 quad-core ARM board that draws less than 1W at idle — running <strong><a href="https://picoclaw.net/" target="_blank">PicoClaw</a></strong>, an open-source Go binary that starts in under a second and uses less than 10MB of RAM. The result: a home agent accessible from anywhere via Telegram, backed by an AI model of my choice, running 24/7 for about €1.50 a year in electricity.
+    </div>
+
+    <img
+      src="/picoclaw-pi-zero-2w-setup.jpeg"
+      alt="Raspberry Pi Zero 2W setup"
+      style={{
+        flex: "1 1 320px",
+        width: "100%",
+        maxWidth: "480px",
+        borderRadius: "12px",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+        objectFit: "cover",
+        minWidth: "280px"
+      }}
+    />
+  </div>
+</div>
+
+## Why PicoClaw?
+
+Most home-assistant setups require running a full server, a Docker stack, or a cloud subscription. PicoClaw is the opposite: a **single statically-compiled binary** that ships as one file, reads one config, and connects your chosen AI model (DeepSeek, Groq, Anthropic, OpenAI, OpenRouter…) to a messaging platform. On a Pi Zero 2W, it starts faster than the network is ready.
+
+Key properties that made it the right pick:
+
+- **Under 10MB RAM** — the Pi Zero 2W has 512MB total; PicoClaw barely shows up
+- **Sub-1-second startup** — boots before the shell prompt finishes loading
+- **Single binary, no runtime** — no Node, no Python, no Docker; just one file
+- **Built-in cron** — schedule tasks directly from Telegram without extra tooling
+- **Multi-model** — switch providers in one config line
+
+## Hardware
+
+| Component | Spec | Cost |
+|-----------|------|------|
+| Raspberry Pi Zero 2W | Quad-core Cortex-A53, 512MB RAM, Wi-Fi | ~$15 |
+| MicroSD card (32GB) | Class 10 / A1 | ~$6 |
+| USB-C power supply | 5V 2.5A | ~$8 |
+
+Total hardware cost: **under $30**.
+
+## Setup
+
+### 1. Flash Raspberry Pi OS Lite (64-bit)
+
+Using [Raspberry Pi Imager](https://www.raspberrypi.com/software/), I flashed the card with SSH and Wi-Fi pre-configured via Advanced Options — no keyboard or monitor needed.
+
+### 2. Download PicoClaw
+
+```bash
+curl -Lo picoclaw https://github.com/picoclaw/picoclaw/releases/latest/download/picoclaw-linux-arm64
+chmod +x picoclaw
+sudo mv picoclaw /usr/local/bin/picoclaw
+```
+
+### 3. Create the config
+
+```yaml
+# ~/.config/picoclaw/config.yaml
+bot:
+  platform: telegram
+  token: "YOUR_TELEGRAM_BOT_TOKEN"
+
+model:
+  provider: groq
+  api_key: "YOUR_GROQ_API_KEY"
+  name: "llama-3.3-70b-versatile"
+
+memory:
+  enabled: true
+  path: ~/.config/picoclaw/memory.json
+```
+
+The Telegram bot token comes from [@BotFather](https://t.me/botfather) — a two-minute setup. I used [Groq](https://console.groq.com) as the inference provider for its free tier and very fast response times.
+
+### 4. Run as a systemd service
+
+```ini
+# /etc/systemd/system/picoclaw.service
+[Unit]
+Description=PicoClaw Home AI Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/usr/local/bin/picoclaw --config /home/pi/.config/picoclaw/config.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable --now picoclaw
+```
+
+The agent now starts automatically on every boot and restarts itself on failure.
+
+## In Action
+
+<div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", alignItems: "flex-start", marginBottom: "1.5rem" }}>
+  <div style={{ flex: "1 1 300px", minWidth: "280px" }}>
+    From my phone I can send any message to the bot and get a reply within 1–2 seconds. PicoClaw maintains a conversation memory across sessions, so context carries over. The built-in cron feature lets me set recurring reminders directly in chat — for example:
+
+    ```
+    /schedule 0 8 * * 1-5 | What should I focus on today?
+    ```
+
+    This fires every weekday morning and sends me a brief prompt.
+  </div>
+
+  <img
+    src="/picoclaw-telegram-demo.jpeg"
+    alt="PicoClaw responding in Telegram"
+    style={{
+      flex: "1 1 300px",
+      width: "100%",
+      maxWidth: "420px",
+      borderRadius: "12px",
+      boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+      objectFit: "cover",
+      minWidth: "280px"
+    }}
+  />
+</div>
+
+## Outcomes
+
+- **Always available:** The Pi has been running for weeks without a single manual restart.
+- **Private:** Queries go to a model provider of my choice — nothing sits in a third-party chat history.
+- **Negligible cost:** ~1.2W idle draw. At French electricity rates that's under €2/year.
+- **Zero maintenance:** `systemd` handles crashes; `apt` updates handle security.
+
+## What's Next
+
+- **Home automation:** Connect PicoClaw to Home Assistant via webhooks to control lights and plugs with natural language.
+- **Voice input:** Add a USB microphone and Whisper for voice commands from the kitchen.
+- **Multi-model routing:** Use a fast cheap model for quick queries and a more capable one for complex tasks, selected automatically.
+
+The Pi Zero 2W is barely warm to the touch. There's plenty of headroom to grow.
+
+<div style={{ marginTop: "2rem" }}>
+  <a href="https://picoclaw.net/" target="_blank" style={{ textDecoration: "none" }}>
+    <strong>→ PicoClaw on picoclaw.net</strong>
+  </a>
+</div>
